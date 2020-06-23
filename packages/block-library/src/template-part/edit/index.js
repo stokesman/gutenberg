@@ -3,6 +3,7 @@
  */
 import { useRef, useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
+import { sprintf } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
@@ -67,18 +68,14 @@ export default function TemplatePartEdit( {
 	if ( postId ) {
 		// Part of a template file, post ID already resolved.
 		return (
-			<>
-				{ ( isSelected || hasSelectedInnerBlock ) && (
-					<TemplatePartNamePanel
-						postId={ postId }
-						setAttributes={ setAttributes }
-					/>
-				) }
-				<TemplatePartInnerBlocks
-					postId={ postId }
-					hasInnerBlocks={ innerBlocks.length > 0 }
-				/>
-			</>
+			<TemplatePartEditor
+				postId={ postId }
+				slug={ slug }
+				setAttributes={ setAttributes }
+				isSelected={ isSelected }
+				hasSelectedInnerBlock={ hasSelectedInnerBlock }
+				innerBlocks={ innerBlocks }
+			/>
 		);
 	}
 	if ( ! initialSlug.current && ! initialTheme.current ) {
@@ -88,3 +85,80 @@ export default function TemplatePartEdit( {
 	// Part of a template file, post ID not resolved yet.
 	return null;
 }
+
+const TemplatePartEditor = ( {
+	postId,
+	setAttributes,
+	isSelected,
+	hasSelectedInnerBlock,
+	innerBlocks,
+	slug,
+} ) => {
+	const hasBeenSelectedRef = useRef( false );
+	const { createWarningNotice, removeNotice } = useDispatch( 'core/notices' );
+	const { toggleFeature } = useDispatch( 'core/edit-site' ) || {};
+	const isFocusModeActive = useSelect( ( select ) =>
+		select( 'core/edit-site' )?.isFeatureActive( 'focusMode' )
+	);
+
+	useEffect( () => {
+		// When the Template Part is first selected.
+		if (
+			! hasBeenSelectedRef.current &&
+			( isSelected || hasSelectedInnerBlock )
+		) {
+			createWarningNotice(
+				sprintf(
+					'You are editing %s.  Changes apply to everywhere this block is used.',
+					slug
+				),
+				{
+					type: 'snackbar',
+					isDismissable: true,
+					speak: true,
+					id: 'template-part-edit-warning',
+				}
+			);
+			// Enable spotlight mode in site editor.
+			if ( isFocusModeActive === false ) {
+				toggleFeature( 'focusMode' );
+			}
+		}
+		// When we deselect the Teamplate Part.
+		else if (
+			hasBeenSelectedRef.current &&
+			! ( isSelected || hasSelectedInnerBlock )
+		) {
+			removeNotice( 'template-part-edit-warning' );
+			// Disable spotlight mode in site editor.
+			if ( isFocusModeActive ) {
+				toggleFeature( 'focusMode' );
+			}
+		}
+		// Ensure spotlight mode is on when a Template Part is selected.
+		// Without this if we select footer then select header focus mode will be turned off.
+		else if (
+			isFocusModeActive === false &&
+			( isSelected || hasSelectedInnerBlock )
+		) {
+			toggleFeature( 'focusMode' );
+		}
+
+		hasBeenSelectedRef.current = isSelected || hasSelectedInnerBlock;
+	}, [ isSelected, hasSelectedInnerBlock, isFocusModeActive ] );
+	// Part of a template file, post ID already resolved.
+	return (
+		<>
+			{ ( isSelected || hasSelectedInnerBlock ) && (
+				<TemplatePartNamePanel
+					postId={ postId }
+					setAttributes={ setAttributes }
+				/>
+			) }
+			<TemplatePartInnerBlocks
+				postId={ postId }
+				hasInnerBlocks={ innerBlocks.length > 0 }
+			/>
+		</>
+	);
+};

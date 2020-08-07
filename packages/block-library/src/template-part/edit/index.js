@@ -3,13 +3,13 @@
  */
 import { useRef, useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { sprintf } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
 import useTemplatePartPost from './use-template-part-post';
 import TemplatePartNamePanel from './name-panel';
+import TemplatePartNotice from './notice';
 import TemplatePartInnerBlocks from './inner-blocks';
 import TemplatePartPlaceholder from './placeholder';
 
@@ -95,7 +95,6 @@ const TemplatePartEditor = ( {
 	slug,
 } ) => {
 	const hasBeenSelectedRef = useRef( false );
-	const { createWarningNotice, removeNotice } = useDispatch( 'core/notices' );
 	const { toggleFeature } = useDispatch( 'core/edit-site' ) || {};
 	const isFocusModeActive = useSelect( ( select ) =>
 		select( 'core/edit-site' )?.isFeatureActive( 'focusMode' )
@@ -107,18 +106,6 @@ const TemplatePartEditor = ( {
 			! hasBeenSelectedRef.current &&
 			( isSelected || hasSelectedInnerBlock )
 		) {
-			createWarningNotice(
-				sprintf(
-					'You are editing %s.  Changes apply to everywhere this block is used.',
-					slug
-				),
-				{
-					type: 'snackbar',
-					isDismissable: true,
-					speak: true,
-					id: 'template-part-edit-warning',
-				}
-			);
 			// Enable spotlight mode in site editor.
 			if ( isFocusModeActive === false ) {
 				toggleFeature( 'focusMode' );
@@ -129,7 +116,6 @@ const TemplatePartEditor = ( {
 			hasBeenSelectedRef.current &&
 			! ( isSelected || hasSelectedInnerBlock )
 		) {
-			removeNotice( 'template-part-edit-warning' );
 			// Disable spotlight mode in site editor.
 			if ( isFocusModeActive ) {
 				toggleFeature( 'focusMode' );
@@ -148,17 +134,20 @@ const TemplatePartEditor = ( {
 	}, [ isSelected, hasSelectedInnerBlock, isFocusModeActive ] );
 	// Part of a template file, post ID already resolved.
 	return (
-		<>
+		<div style={ { position: 'relative' } }>
 			{ ( isSelected || hasSelectedInnerBlock ) && (
-				<TemplatePartNamePanel
-					postId={ postId }
-					setAttributes={ setAttributes }
-				/>
+				<>
+					<TemplatePartNamePanel
+						postId={ postId }
+						setAttributes={ setAttributes }
+					/>
+					<TemplatePartNotice postId={ postId } slug={ slug } />
+				</>
 			) }
 			<TemplatePartInnerBlocks
 				postId={ postId }
 				hasInnerBlocks={ innerBlocks.length > 0 }
 			/>
-		</>
+		</div>
 	);
 };

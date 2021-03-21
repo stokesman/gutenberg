@@ -1,0 +1,71 @@
+{
+	"apiVersion": 2,
+	"name": "core/overlink",
+	"category": "design",
+	"parent": [
+		"core/column",
+		"core/cover",
+		"core/group"
+	],
+	"attributes": {
+		"href": {
+			"type": "string",
+			"source": "attribute",
+			"selector": "a",
+			"attribute": "href",
+			"__experimentalRole": "content"
+		},
+		"text": {
+			"type": "string",
+			"source": "html",
+			"selector": "a",
+			"__experimentalRole": "content"
+		},
+		"linkTarget": {
+			"type": "string",
+			"source": "attribute",
+			"selector": "a",
+			"attribute": "target",
+			"__experimentalRole": "content"
+		},
+		"rel": {
+			"type": "string",
+			"source": "attribute",
+			"selector": "a",
+			"attribute": "rel",
+			"__experimentalRole": "content"
+		},
+		"placeholder": {
+			"type": "string"
+		},
+		"textAlign":{
+			"type": "string"
+		},
+		"style": {
+			"type": "object"
+		}
+	},
+	"supports": {
+		"anchor": false,
+		"color": {
+			"link": true,
+			"text": false
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true,
+			"__experimentalFontFamily": true,
+			"__experimentalTextDecoration": true,
+			"__experimentalFontStyle": true,
+			"__experimentalFontWeight": true,
+			"__experimentalLetterSpacing": true,
+			"__experimentalTextTransform": true,
+			"__experimentalDefaultControls": {
+				"fontSize": true
+			}
+		},
+		"reusable": false
+	},
+	"editorStyle": "wp-block-overlink-editor",
+	"style": "wp-block-overlink"
+}

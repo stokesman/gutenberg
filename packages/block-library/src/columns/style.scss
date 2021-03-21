@@ -81,6 +81,9 @@
 
 
 .wp-block-column {
+	// Make a positioning context (important for Overlink block containment).
+	position: relative;
+
 	flex-grow: 1;
 
 	// Prevent the columns from growing wider than their distributed sizes.

@@ -147,6 +147,7 @@ export { default as moveTo } from './library/move-to';
 export { default as navigation } from './library/navigation';
 export { default as notFound } from './library/not-found';
 export { default as overlayText } from './library/overlay-text';
+export { default as overlink } from './library/overlink';
 export { default as pageBreak } from './library/page-break';
 export { default as customLink } from './library/custom-link';
 export { default as page } from './library/page';

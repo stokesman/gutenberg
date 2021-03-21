@@ -1,0 +1,29 @@
+.wp-block-overlink {
+	display: block;
+	overflow-wrap: break-word;
+
+	> a::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+	}
+
+	> a:focus-visible::before {
+		box-shadow: 0 0 0 0.1em inset;
+	}
+
+	// Raise any links following the overlink to above it.
+	~ a[href],
+	~ * a[href] {
+		position: relative;
+	}
+
+	// The above also applies to overlinks so this overrides that.
+	~ .wp-block-overlink > a,
+	~ * .wp-block-overlink > a {
+		position: initial;
+	}
+}

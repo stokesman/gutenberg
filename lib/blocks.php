@@ -30,6 +30,7 @@ function gutenberg_reregister_core_block_types() {
 				'missing',
 				'more',
 				'nextpage',
+				'overlink',
 				'paragraph',
 				'preformatted',
 				'pullquote',

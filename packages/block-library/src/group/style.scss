@@ -1,4 +1,7 @@
 .wp-block-group {
+	// Make a positioning context (important for Overlink block containment).
+	position: relative;
+
 	// This block has customizable padding, border-box makes that more predictable.
 	box-sizing: border-box;
 }

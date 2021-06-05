@@ -12,13 +12,23 @@
 	// Override the inline styles added via JS that make the section title
 	// sticky feature work. The customize widget block-editor disables this
 	// sticky title.
-	padding-top: 10px !important;
+	padding-top: 12px !important;
 
-	.customize-section-title {
-		// Disable the sticky title. `!important` as this overrides inline
-		// styles added via JavaScript.
-		position: static !important;
-		top: 0 !important;
-		width: unset !important;
+	> .section-meta {
+		// Redoes stickiness (in concert with JS in SidebarBlockEditor) to
+		// coordinate with the sticky positioning of the editor header.
+		position: sticky;
+		top: -75px;
+		// Reuse the z-index of the (visually) adjacent editor toolbar
+		z-index: z-index(".customize-widgets__topbar");
+
+		> .customize-section-title {
+			// Disable the sticky title. `!important` as this overrides inline
+			// styles added via JavaScript.
+			position: static !important;
+			width: unset !important;
+			margin-top: -12px !important;
+		}
 	}
+
 }

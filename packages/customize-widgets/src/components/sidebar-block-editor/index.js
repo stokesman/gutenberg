@@ -6,9 +6,18 @@ import { defaultTo } from 'lodash';
 /**
  * WordPress dependencies
  */
+import { useRefEffect } from '@wordpress/compose';
 import { store as coreStore } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
-import { useMemo, createPortal } from '@wordpress/element';
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	createPortal,
+} from '@wordpress/element';
 import {
 	BlockList,
 	BlockTools,
@@ -32,12 +41,55 @@ import { store as customizeWidgetsStore } from '../../store';
 import WelcomeGuide from '../welcome-guide';
 import KeyboardShortcuts from '../keyboard-shortcuts';
 
+/**
+ * Tracks scroll position and returns the number of pixels scrolled upward from
+ * the greatest scroll position last reached.
+ *
+ * @param {HTMLElement} element  The scrolling element to track.
+ * @param {?number}     max      The maximum return value.
+ *
+ * @return {number} The number of pixels scrolled upward.
+ */
+function useScrollback( element, max = Infinity ) {
+	const lastScrollTop = useRef( element.scrollTop );
+
+	const reducer = useCallback( ( scrollback, { target: { scrollTop } } ) => {
+		const scrollDiff = scrollTop - lastScrollTop.current;
+		lastScrollTop.current = scrollTop;
+
+		// If scrolling upward increases or constrains to max otherwise
+		// if not already zero, decreases or constrains to zero.
+		if ( scrollDiff < 0 ) {
+			scrollback = Math.min( max, scrollback - scrollDiff );
+		} else if ( scrollback > 0 ) {
+			scrollback = Math.max( 0, scrollback - scrollDiff );
+		}
+		return scrollback;
+	}, [] );
+	const [ value, onScroll ] = useReducer( reducer, 0 );
+
+	useEffect( () => {
+		const options = { passive: true };
+		element.addEventListener( 'scroll', onScroll, options );
+		return () => element.removeEventListener( 'scroll', onScroll, options );
+	}, [] );
+
+	return value;
+}
+
 export default function SidebarBlockEditor( {
 	blockEditorSettings,
-	sidebar,
-	inserter,
-	inspector,
+	activeSidebarControl,
 } ) {
+	const {
+		sidebarAdapter: sidebar,
+		inserter,
+		inspector,
+		sectionInstance: {
+			containerParent: [ { parentNode: scrollingContext } ],
+			contentContainer: [ { firstElementChild: sectionMeta } ],
+		},
+	} = activeSidebarControl;
 	const [ isInserterOpened, setIsInserterOpened ] = useInserter( inserter );
 	const {
 		hasUploadPermissions,
@@ -87,6 +139,24 @@ export default function SidebarBlockEditor( {
 		keepCaretInsideBlock,
 	] );
 
+	// The top of the editor header is offset by the Customizer’s section meta
+	// which changes according to scroll position and the top of the block
+	// toolbars are offset by the header.
+	const sectionMetaHeight = sectionMeta.offsetHeight;
+	const scrollback = useScrollback( scrollingContext, sectionMetaHeight );
+	const [ headerHeight, updateHeaderHeight ] = useReducer(
+		( height, { offsetHeight } ) => offsetHeight,
+		0
+	);
+	const headerRef = useRefEffect( updateHeaderHeight, [] );
+	const blockToolbarOffset = scrollback + headerHeight;
+
+	// Positions the section meta/header according to scrollback in order to
+	// recreate the Customizer’s “sticky” implementation.
+	useLayoutEffect( () => {
+		sectionMeta.style.top = -sectionMetaHeight + scrollback + 'px';
+	}, [ scrollback ] );
+
 	if ( isWelcomeGuideActive ) {
 		return <WelcomeGuide sidebar={ sidebar } />;
 	}
@@ -105,14 +175,16 @@ export default function SidebarBlockEditor( {
 				/>
 
 				<Header
+					ref={ headerRef }
 					sidebar={ sidebar }
 					inserter={ inserter }
 					isInserterOpened={ isInserterOpened }
 					setIsInserterOpened={ setIsInserterOpened }
 					isFixedToolbarActive={ isFixedToolbarActive }
+					stickyTop={ scrollback }
 				/>
 
-				<BlockTools>
+				<BlockTools __experimentalStickyTop={ blockToolbarOffset }>
 					<BlockSelectionClearer>
 						<WritingFlow>
 							<ObserveTyping>

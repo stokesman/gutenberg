@@ -45,9 +45,7 @@ export default function CustomizeWidgets( {
 			<SidebarBlockEditor
 				key={ activeSidebarControl.id }
 				blockEditorSettings={ blockEditorSettings }
-				sidebar={ activeSidebarControl.sidebarAdapter }
-				inserter={ activeSidebarControl.inserter }
-				inspector={ activeSidebarControl.inspector }
+				activeSidebarControl={ activeSidebarControl }
 			/>,
 			activeSidebarControl.container[ 0 ]
 		);

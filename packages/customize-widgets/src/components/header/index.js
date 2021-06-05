@@ -6,7 +6,12 @@ import classnames from 'classnames';
 /**
  * WordPress dependencies
  */
-import { createPortal, useState, useEffect } from '@wordpress/element';
+import {
+	createPortal,
+	forwardRef,
+	useState,
+	useEffect,
+} from '@wordpress/element';
 import { __, _x, isRTL } from '@wordpress/i18n';
 import { ToolbarButton } from '@wordpress/components';
 import { NavigableToolbar } from '@wordpress/block-editor';
@@ -19,13 +24,17 @@ import { plus, undo as undoIcon, redo as redoIcon } from '@wordpress/icons';
 import Inserter from '../inserter';
 import MoreMenu from '../more-menu';
 
-function Header( {
-	sidebar,
-	inserter,
-	isInserterOpened,
-	setIsInserterOpened,
-	isFixedToolbarActive,
-} ) {
+function Header(
+	{
+		sidebar,
+		inserter,
+		isInserterOpened,
+		setIsInserterOpened,
+		isFixedToolbarActive,
+		stickyTop,
+	},
+	ref
+) {
 	const [ [ hasUndo, hasRedo ], setUndoRedo ] = useState( [
 		sidebar.hasUndo(),
 		sidebar.hasRedo(),
@@ -43,6 +52,8 @@ function Header( {
 				className={ classnames( 'customize-widgets-header', {
 					'is-fixed-toolbar-active': isFixedToolbarActive,
 				} ) }
+				ref={ ref }
+				style={ { top: stickyTop + 'px' } }
 			>
 				<NavigableToolbar
 					className="customize-widgets-header-toolbar"
@@ -98,4 +109,4 @@ function Header( {
 	);
 }
 
-export default Header;
+export default forwardRef( Header );

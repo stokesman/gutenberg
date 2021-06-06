@@ -54,7 +54,10 @@ function BlockPopover( {
 	capturingClientId,
 	__unstablePopoverSlot,
 	__unstableContentRef,
+	__experimentalStickyBottom,
 	__experimentalStickyTop,
+	__experimentalStickyAreaBottom,
+	__experimentalStickyAreaTop,
 } ) {
 	const {
 		isNavigationMode,
@@ -194,7 +197,10 @@ function BlockPopover( {
 			// Observe movement for block animations (especially horizontal).
 			__unstableObserveElement={ node }
 			shouldAnchorIncludePadding
+			__experimentalStickyBottom={ __experimentalStickyBottom }
 			__experimentalStickyTop={ __experimentalStickyTop }
+			__experimentalStickyAreaBottom={ __experimentalStickyAreaBottom }
+			__experimentalStickyAreaTop={ __experimentalStickyAreaTop }
 		>
 			{ ( shouldShowContextualToolbar || isToolbarForced ) && (
 				<div
@@ -306,7 +312,10 @@ function wrapperSelector( select ) {
 export default function WrappedBlockPopover( {
 	__unstablePopoverSlot,
 	__unstableContentRef,
+	__experimentalStickyBottom,
 	__experimentalStickyTop,
+	__experimentalStickyAreaBottom,
+	__experimentalStickyAreaTop,
 } ) {
 	const selected = useSelect( wrapperSelector, [] );
 
@@ -336,7 +345,10 @@ export default function WrappedBlockPopover( {
 			capturingClientId={ capturingClientId }
 			__unstablePopoverSlot={ __unstablePopoverSlot }
 			__unstableContentRef={ __unstableContentRef }
+			__experimentalStickyBottom={ __experimentalStickyBottom }
 			__experimentalStickyTop={ __experimentalStickyTop }
+			__experimentalStickyAreaBottom={ __experimentalStickyAreaBottom }
+			__experimentalStickyAreaTop={ __experimentalStickyAreaTop }
 		/>
 	);
 }

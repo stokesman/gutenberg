@@ -184,7 +184,12 @@ export default function SidebarBlockEditor( {
 					stickyTop={ scrollback }
 				/>
 
-				<BlockTools __experimentalStickyTop={ blockToolbarOffset }>
+				<BlockTools
+					__experimentalStickyTop={ blockToolbarOffset }
+					__experimentalStickyAreaBottom={ Infinity }
+					__experimentalStickyBottom={ 0 }
+					__experimentalStickyAreaTop={ -Infinity }
+				>
 					<BlockSelectionClearer>
 						<WritingFlow>
 							<ObserveTyping>

@@ -186,9 +186,7 @@ export default function SidebarBlockEditor( {
 
 				<BlockTools
 					__experimentalStickyTop={ blockToolbarOffset }
-					__experimentalStickyAreaBottom={ Infinity }
-					__experimentalStickyBottom={ 0 }
-					__experimentalStickyAreaTop={ -Infinity }
+					__experimentalStickier
 				>
 					<BlockSelectionClearer>
 						<WritingFlow>

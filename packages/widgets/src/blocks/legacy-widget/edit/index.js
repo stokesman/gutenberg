@@ -16,9 +16,10 @@ import {
 import { Spinner, Placeholder } from '@wordpress/components';
 import { brush as brushIcon } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
-import { useState, useCallback, useEffect } from '@wordpress/element';
+import { useState, useCallback, useEffect, useRef } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { store as coreStore } from '@wordpress/core-data';
+import { useViewportMatch } from '@wordpress/compose';
 
 /**
  * Internal dependencies
@@ -32,13 +33,43 @@ import ConvertToBlocksButton from './convert-to-blocks-button';
 
 export default function Edit( props ) {
 	const { id, idBase } = props.attributes;
-	const { isWide = false } = props;
+
+	const [ isEditing, setIsEditing ] = useState( false );
+	const stopEditing = useCallback( () => {
+		setIsEditing( false );
+		ref.current.focus();
+	}, [ setIsEditing ] );
+
+	props = { ...props, isEditing, stopEditing };
+
+	// isWide is applicable only at breakpoints greater than small
+	const canWideFit = useViewportMatch( 'small' );
+	props.isWide &&= canWideFit;
+
+	const ref = useRef();
+
+	useEffect( () => {
+		if ( props.isSelected ) {
+			setIsEditing( true );
+		} else {
+			setIsEditing( false );
+		}
+	}, [ props.isSelected ] );
 
 	const blockProps = useBlockProps( {
+		ref,
 		className: classnames( {
-			'is-wide-widget': isWide,
+			'is-wide-widget': props.isWide,
 		} ),
 	} );
+
+	if ( props.isWide ) {
+		blockProps.onClick = ( { currentTarget, target } ) => {
+			if ( currentTarget.contains( target ) ) {
+				setIsEditing( true );
+			}
+		};
+	}
 
 	return (
 		<div { ...blockProps }>
@@ -89,11 +120,11 @@ function NotEmpty( {
 	attributes: { id, idBase, instance },
 	setAttributes,
 	clientId,
-	isSelected,
 	isWide = false,
+	isEditing,
+	stopEditing,
 } ) {
 	const [ hasPreview, setHasPreview ] = useState( null );
-	const [ mode, setMode ] = useState( 'preview' );
 
 	const { widgetType, hasResolvedWidgetType, isNavigationMode } = useSelect(
 		( select ) => {
@@ -112,10 +143,6 @@ function NotEmpty( {
 	const setInstance = useCallback( ( nextInstance ) => {
 		setAttributes( { instance: nextInstance } );
 	}, [] );
-
-	useEffect( () => {
-		setMode( isNavigationMode || ! isSelected ? 'preview' : 'edit' );
-	}, [ isNavigationMode, isSelected ] );
 
 	if ( ! widgetType && hasResolvedWidgetType ) {
 		return (
@@ -156,19 +183,19 @@ function NotEmpty( {
 
 			<Form
 				title={ widgetType.name }
-				isVisible={ mode === 'edit' }
+				isVisible={ isEditing && ! isNavigationMode }
 				id={ id }
 				idBase={ idBase }
 				instance={ instance }
 				isWide={ isWide }
 				onChangeInstance={ setInstance }
 				onChangeHasPreview={ setHasPreview }
-				onClose={ () => setMode( 'preview' ) }
+				onClose={ stopEditing }
 			/>
 
 			{ idBase && (
 				<>
-					{ hasPreview === null && mode === 'preview' && (
+					{ hasPreview === null && (
 						<Placeholder>
 							<Spinner />
 						</Placeholder>
@@ -177,14 +204,11 @@ function NotEmpty( {
 						<Preview
 							idBase={ idBase }
 							instance={ instance }
-							isVisible={ mode === 'preview' }
+							isVisible={ ! isEditing || isWide }
 						/>
 					) }
-					{ hasPreview === false && mode === 'preview' && (
-						<NoPreview
-							name={ widgetType.name }
-							onClick={ () => setMode( 'edit' ) }
-						/>
+					{ hasPreview === false && ( ! isEditing || isWide ) && (
+						<NoPreview name={ widgetType.name } />
 					) }
 				</>
 			) }

@@ -14,7 +14,14 @@ import { isRTL } from '@wordpress/i18n';
  * Internal dependencies
  */
 import { Input } from './styles/number-control-styles';
-import * as inputControlActionTypes from '../input-control/reducer/actions';
+import {
+	CHANGE,
+	COMMIT,
+	DRAG,
+	PRESS_DOWN,
+	PRESS_ENTER,
+	PRESS_UP,
+} from '../input-control/reducer/actions';
 import { composeStateReducers } from '../input-control/reducer/reducer';
 import { add, subtract, roundClamp } from '../utils/math';
 import { useJumpStep } from '../utils/hooks';
@@ -68,10 +75,7 @@ export function NumberControl(
 		/**
 		 * Handles custom UP and DOWN Keyboard events
 		 */
-		if (
-			type === inputControlActionTypes.PRESS_UP ||
-			type === inputControlActionTypes.PRESS_DOWN
-		) {
+		if ( type === PRESS_UP || type === PRESS_DOWN ) {
 			const enableShift = event.shiftKey && isShiftStepEnabled;
 
 			const incrementalValue = enableShift
@@ -85,11 +89,11 @@ export function NumberControl(
 				event.preventDefault();
 			}
 
-			if ( type === inputControlActionTypes.PRESS_UP ) {
+			if ( type === PRESS_UP ) {
 				nextValue = add( nextValue, incrementalValue );
 			}
 
-			if ( type === inputControlActionTypes.PRESS_DOWN ) {
+			if ( type === PRESS_DOWN ) {
 				nextValue = subtract( nextValue, incrementalValue );
 			}
 
@@ -101,7 +105,7 @@ export function NumberControl(
 		/**
 		 * Handles drag to update events
 		 */
-		if ( type === inputControlActionTypes.DRAG && isDragEnabled ) {
+		if ( type === DRAG && isDragEnabled ) {
 			const { delta, shiftKey } = payload;
 			const [ x, y ] = delta;
 			const modifier = shiftKey
@@ -149,11 +153,13 @@ export function NumberControl(
 		}
 
 		/**
-		 * Handles commit (ENTER key press or on blur if isPressEnterToChange)
+		 * Ensures valid values for COMMIT or, when isPressEnterToChange is
+		 * false, PRESS_ENTER or CHANGE.
 		 */
 		if (
-			type === inputControlActionTypes.PRESS_ENTER ||
-			type === inputControlActionTypes.COMMIT
+			type === COMMIT ||
+			( ! state.isPressEnterToChange &&
+				( type === PRESS_ENTER || type === CHANGE ) )
 		) {
 			const applyEmptyValue = required === false && currentValue === '';
 

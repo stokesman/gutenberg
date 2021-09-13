@@ -1,24 +1,18 @@
 /**
  * External dependencies
  */
-import { isEmpty } from 'lodash';
 // eslint-disable-next-line no-restricted-imports
 import type { SyntheticEvent } from 'react';
 
 /**
  * WordPress dependencies
  */
-import { useReducer } from '@wordpress/element';
+import { useReducer, useRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
-import {
-	InputState,
-	StateReducer,
-	initialInputControlState,
-	initialStateReducer,
-} from './state';
+import { InputState, StateReducer, initialInputControlState } from './state';
 import * as actions from './actions';
 
 /**
@@ -39,63 +33,29 @@ function mergeInitialState(
 	} as InputState;
 }
 
-/**
- * Composes multiple stateReducers into a single stateReducer, building
- * the pipeline to control the flow for state and actions.
- *
- * @param  fns State reducers.
- * @return The single composed stateReducer.
- */
-export const composeStateReducers = (
-	...fns: StateReducer[]
-): StateReducer => {
-	return ( ...args ) => {
-		return fns.reduceRight( ( state, fn ) => {
-			const fnState = fn( ...args );
-			return isEmpty( fnState ) ? state : { ...state, ...fnState };
-		}, {} as InputState );
-	};
-};
-
-/**
+/*
  * Creates a reducer that opens the channel for external state subscription
  * and modification.
  *
  * This technique uses the "stateReducer" design pattern:
  * https://kentcdodds.com/blog/the-state-reducer-pattern/
  *
- * @param  composedStateReducers A custom reducer that can subscribe and modify state.
+ * @param  specializedReducer A custom reducer that can subscribe and modify state.
  * @return The reducer.
  */
 function inputControlStateReducer(
-	composedStateReducers: StateReducer
+	specializedReducer?: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
+		// Update actions are fundamental and unavailable to specialized
+		// reducers. They merely merge state and return.
+		if ( action.type === actions.UPDATE ) {
+			return { ...state, ...action.payload };
+		}
+
 		const nextState = { ...state };
 
 		switch ( action.type ) {
-			/**
-			 * Keyboard events
-			 */
-			case actions.PRESS_UP:
-				nextState.isDirty = false;
-				break;
-
-			case actions.PRESS_DOWN:
-				nextState.isDirty = false;
-				break;
-
-			/**
-			 * Drag events
-			 */
-			case actions.DRAG_START:
-				nextState.isDragging = true;
-				break;
-
-			case actions.DRAG_END:
-				nextState.isDragging = false;
-				break;
-
 			/**
 			 * Input events
 			 */
@@ -117,12 +77,7 @@ function inputControlStateReducer(
 			case actions.RESET:
 				nextState.error = null;
 				nextState.isDirty = false;
-				nextState.value = action.payload.value || state.initialValue;
-				break;
-
-			case actions.UPDATE:
-				nextState.value = action.payload.value;
-				nextState.isDirty = false;
+				nextState.value = action.payload.value ?? state.initialValue;
 				break;
 
 			/**
@@ -133,37 +88,33 @@ function inputControlStateReducer(
 				break;
 		}
 
-		if ( action.payload.event ) {
-			nextState._event = action.payload.event;
-		}
-
-		/**
-		 * Send the nextState + action to the composedReducers via
-		 * this "bridge" mechanism. This allows external stateReducers
-		 * to hook into actions, and modify state if needed.
-		 */
-		return composedStateReducers( nextState, action );
+		// Continue through a specialized reducer if one is defined, otherwise
+		// return the nextState.
+		return specializedReducer?.( nextState, action ) ?? nextState;
 	};
 }
 
 /**
- * A custom hook that connects and external stateReducer with an internal
- * reducer. This hook manages the internal state of InputControl.
- * However, by connecting an external stateReducer function, other
- * components can react to actions as well as modify state before it is
- * applied.
+ * This hook sets up the state reducer for InputControl and creates some
+ * specialized dispatch methods for each action type.
  *
  * This technique uses the "stateReducer" design pattern:
  * https://kentcdodds.com/blog/the-state-reducer-pattern/
  *
  * @param  stateReducer An external state reducer.
  * @param  initialState The initial state for the reducer.
- * @return State, dispatch, and a collection of actions.
+ * @return State, event, dispatch and action specific dispatch methods.
  */
 export function useInputControlStateReducer(
-	stateReducer: StateReducer = initialStateReducer,
+	stateReducer: StateReducer,
 	initialState: Partial< InputState > = initialInputControlState
 ) {
+	const refEvent = useRef< SyntheticEvent | undefined >();
+	const setEvent = ( event: SyntheticEvent | undefined ) => {
+		event?.persist();
+		refEvent.current = event;
+	};
+
 	const [ state, dispatch ] = useReducer< StateReducer >(
 		inputControlStateReducer( stateReducer ),
 		mergeInitialState( initialState )
@@ -173,71 +124,43 @@ export function useInputControlStateReducer(
 		nextValue: actions.ChangeEventAction[ 'payload' ][ 'value' ],
 		event: actions.ChangeEventAction[ 'payload' ][ 'event' ]
 	) => {
-		/**
-		 * Persist allows for the (Synthetic) event to be used outside of
-		 * this function call.
-		 * https://reactjs.org/docs/events.html#event-pooling
-		 */
-		if ( event && event.persist ) {
-			event.persist();
-		}
+		setEvent( event );
 
 		dispatch( {
 			type,
-			payload: { value: nextValue, event },
+			payload: { value: nextValue },
 		} as actions.InputAction );
 	};
 
-	const createKeyEvent = ( type: actions.KeyEventAction[ 'type' ] ) => (
-		event: actions.KeyEventAction[ 'payload' ][ 'event' ]
-	) => {
-		/**
-		 * Persist allows for the (Synthetic) event to be used outside of
-		 * this function call.
-		 * https://reactjs.org/docs/events.html#event-pooling
-		 */
-		if ( event && event.persist ) {
-			event.persist();
-		}
-
-		dispatch( { type, payload: { event } } );
-	};
-
-	const createDragEvent = ( type: actions.DragEventAction[ 'type' ] ) => (
-		payload: actions.DragEventAction[ 'payload' ]
-	) => {
-		dispatch( { type, payload } );
-	};
-
-	/**
-	 * Actions for the reducer
-	 */
+	// Actions for the reducer
 	const change = createChangeEvent( actions.CHANGE );
-	const invalidate = ( error: unknown, event: SyntheticEvent ) =>
-		dispatch( { type: actions.INVALIDATE, payload: { error, event } } );
 	const reset = createChangeEvent( actions.RESET );
-	const commit = createChangeEvent( actions.COMMIT );
-	const update = createChangeEvent( actions.UPDATE );
-
-	const dragStart = createDragEvent( actions.DRAG_START );
-	const drag = createDragEvent( actions.DRAG );
-	const dragEnd = createDragEvent( actions.DRAG_END );
-
-	const pressUp = createKeyEvent( actions.PRESS_UP );
-	const pressDown = createKeyEvent( actions.PRESS_DOWN );
-	const pressEnter = createKeyEvent( actions.PRESS_ENTER );
+	const invalidate = ( error: unknown, event: SyntheticEvent ) => {
+		setEvent( event );
+		dispatch( { type: actions.INVALIDATE, payload: { error } } );
+	};
+	const update = ( nextState: InputState ) =>
+		dispatch( { type: actions.UPDATE, payload: nextState } );
+	const commit = (
+		value: string,
+		onValidate: Function,
+		event: SyntheticEvent
+	) => {
+		setEvent( event );
+		try {
+			onValidate?.( value, event );
+			dispatch( { type: actions.COMMIT, payload: { value } } );
+		} catch ( error ) {
+			invalidate( error, event );
+		}
+	};
 
 	return {
 		change,
 		commit,
 		dispatch,
-		drag,
-		dragEnd,
-		dragStart,
+		event: refEvent.current,
 		invalidate,
-		pressDown,
-		pressEnter,
-		pressUp,
 		reset,
 		state,
 		update,

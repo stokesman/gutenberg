@@ -15,7 +15,6 @@ import { ENTER } from '@wordpress/keycodes';
  * Internal dependencies
  */
 import * as inputControlActionTypes from '../input-control/reducer/actions';
-import { composeStateReducers } from '../input-control/reducer/reducer';
 import { Root, ValueInput } from './styles/unit-control-styles';
 import UnitSelectControl from './unit-select-control';
 import {
@@ -28,7 +27,7 @@ import { useControlledState } from '../utils/hooks';
 
 function UnitControl(
 	{
-		__unstableStateReducer: stateReducer = ( state ) => state,
+		__unstableStateReducer: stateReducer,
 		autoComplete = 'off',
 		className,
 		disabled = false,
@@ -129,13 +128,11 @@ function UnitControl(
 	};
 
 	/**
-	 * "Middleware" function that intercepts updates from InputControl.
-	 * This allows us to tap into actions to transform the (next) state for
-	 * InputControl.
+	 * State reducer to specialize NumberControl’s standard reducer.
 	 *
-	 * @param {Object} state  State from InputControl
+	 * @param {Object} state  State from NumberControl
 	 * @param {Object} action Action triggering state change
-	 * @return {Object} The updated state to apply to InputControl
+	 * @return {Object} The updated state to apply to NumberControl
 	 */
 	const unitControlStateReducer = ( state, action ) => {
 		/*
@@ -150,7 +147,7 @@ function UnitControl(
 			}
 		}
 
-		return state;
+		return stateReducer?.( state, action ) ?? state;
 	};
 
 	const inputSuffix = ! disableUnits ? (
@@ -196,10 +193,7 @@ function UnitControl(
 				suffix={ inputSuffix }
 				value={ value }
 				step={ step }
-				__unstableStateReducer={ composeStateReducers(
-					unitControlStateReducer,
-					stateReducer
-				) }
+				__unstableStateReducer={ unitControlStateReducer }
 			/>
 		</Root>
 	);

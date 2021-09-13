@@ -1,7 +1,6 @@
 /**
  * External dependencies
  */
-import { noop } from 'lodash';
 import classNames from 'classnames';
 // eslint-disable-next-line no-restricted-imports
 import type { Ref } from 'react';
@@ -10,14 +9,23 @@ import type { Ref } from 'react';
  * WordPress dependencies
  */
 import { useInstanceId } from '@wordpress/compose';
-import { useState, forwardRef } from '@wordpress/element';
+import {
+	forwardRef,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from '@wordpress/element';
+import { ENTER } from '@wordpress/keycodes';
 
 /**
  * Internal dependencies
  */
 import InputBase from './input-base';
-import InputField from './input-field';
+import { Input } from './styles/input-control-styles';
 import type { InputControlProps } from './types';
+import { useInputControlStateReducer } from './reducer/reducer';
+import { useUpdateEffect } from '../utils';
+import { isValueEmpty } from '../utils/values';
 
 function useUniqueId( idProp?: string ) {
 	const instanceId = useInstanceId( InputControl );
@@ -28,7 +36,7 @@ function useUniqueId( idProp?: string ) {
 
 export function InputControl(
 	{
-		__unstableStateReducer: stateReducer = ( state ) => state,
+		__unstableStateReducer: stateReducer,
 		__unstableInputWidth,
 		className,
 		disabled = false,
@@ -37,13 +45,10 @@ export function InputControl(
 		isPressEnterToChange = false,
 		label,
 		labelPosition = 'top',
-		onChange = noop,
-		onValidate = noop,
-		onKeyDown = noop,
 		prefix,
 		size = 'default',
 		suffix,
-		value,
+		value: valueProp,
 		...props
 	}: InputControlProps,
 	ref: Ref< HTMLInputElement >
@@ -52,6 +57,98 @@ export function InputControl(
 
 	const id = useUniqueId( idProp );
 	const classes = classNames( 'components-input-control', className );
+
+	const {
+		// State
+		state,
+		// Last event
+		event: _event,
+		// Actions
+		change,
+		commit,
+		dispatch,
+		invalidate,
+		reset,
+		update,
+	} = useInputControlStateReducer( stateReducer, {
+		value: valueProp,
+		isPressEnterToChange,
+	} );
+
+	const refInput = useRef();
+
+	// Makes the reducer methods available to consumers for extensibility
+	useImperativeHandle( ref, () => ( {
+		input: refInput,
+		change,
+		commit,
+		dispatch,
+		invalidate,
+		reset,
+		update,
+	} ) );
+
+	const { value, isDirty } = state;
+	const wasDirtyOnBlur = useRef( false );
+
+	/*
+	 * Handles synchronization of external and internal value state.
+	 * If not focused and did not hold a dirty value[1] on blur
+	 * updates the value from the props. Otherwise if not holding
+	 * a dirty value[1] propagates the value and event through onChange.
+	 * [1] value is only made dirty if isPressEnterToChange is true
+	 */
+	useUpdateEffect( () => {
+		if ( valueProp === value ) {
+			return;
+		}
+		if ( ! isFocused && ! wasDirtyOnBlur.current ) {
+			update( { value: valueProp, isDirty: false } );
+		} else if ( ! isDirty ) {
+			props.onChange?.( value, {
+				event: _event as ChangeEvent< HTMLInputElement >,
+			} );
+			wasDirtyOnBlur.current = false;
+		}
+	}, [ value, isDirty, isFocused, valueProp ] );
+
+	const handleOnBlur = ( event: FocusEvent< HTMLInputElement > ) => {
+		props.onBlur?.( event );
+		setIsFocused( false );
+
+		/**
+		 * If isPressEnterToChange is set, this commits the value to
+		 * the onChange callback.
+		 */
+		if ( isPressEnterToChange && isDirty ) {
+			wasDirtyOnBlur.current = true;
+			if ( ! isValueEmpty( value ) ) {
+				commit( value, props.onValidate, event );
+			} else {
+				reset( valueProp, event );
+			}
+		}
+	};
+
+	const handleOnFocus = ( event: FocusEvent< HTMLInputElement > ) => {
+		props.onFocus?.( event );
+		setIsFocused( true );
+	};
+
+	const handleOnChange = ( event: ChangeEvent< HTMLInputElement > ) => {
+		const nextValue = event.target.value;
+		change( nextValue, event );
+	};
+
+	const handleOnKeyDown = ( event: KeyboardEvent< HTMLInputElement > ) => {
+		const { keyCode } = event;
+		const { shouldBypass = false } = props.onKeyDown?.( event ) ?? {};
+
+		if ( ! shouldBypass && keyCode === ENTER && isPressEnterToChange ) {
+			event.preventDefault();
+			commit( event.currentTarget.value, props.onValidate, event );
+		}
+	};
 
 	return (
 		<InputBase
@@ -69,20 +166,18 @@ export function InputControl(
 			size={ size }
 			suffix={ suffix }
 		>
-			<InputField
+			<Input
 				{ ...props }
 				className="components-input-control__input"
 				disabled={ disabled }
 				id={ id }
-				isFocused={ isFocused }
-				isPressEnterToChange={ isPressEnterToChange }
-				onChange={ onChange }
-				onKeyDown={ onKeyDown }
-				onValidate={ onValidate }
-				ref={ ref }
-				setIsFocused={ setIsFocused }
+				inputSize={ size }
+				onBlur={ handleOnBlur }
+				onChange={ handleOnChange }
+				onFocus={ handleOnFocus }
+				onKeyDown={ handleOnKeyDown }
+				ref={ refInput }
 				size={ size }
-				stateReducer={ stateReducer }
 				value={ value }
 			/>
 		</InputBase>

@@ -9,6 +9,7 @@ import styled from '@emotion/styled';
  */
 import InputControl from '../../input-control';
 
+// TODO seems that htmlArrowStyles and defaultArrowStyles should be combined
 const htmlArrowStyles = ( { hideHTMLArrows } ) => {
 	if ( ! hideHTMLArrows ) return ``;
 
@@ -25,6 +26,38 @@ const htmlArrowStyles = ( { hideHTMLArrows } ) => {
 	`;
 };
 
+const dragStyles = ( { isDragging, dragCursor } ) => {
+	let defaultArrowStyles;
+	let activeDragCursorStyles;
+
+	if ( isDragging ) {
+		defaultArrowStyles = css`
+			cursor: ${ dragCursor };
+			user-select: none;
+
+			input[type='number']::-webkit-outer-spin-button,
+			input[type='number']::-webkit-inner-spin-button {
+				-webkit-appearance: none !important;
+				margin: 0 !important;
+			}
+		`;
+	}
+
+	if ( isDragging && dragCursor ) {
+		activeDragCursorStyles = css`
+			input[type='number']:active {
+				cursor: ${ dragCursor };
+			}
+		`;
+	}
+
+	return css`
+		${ defaultArrowStyles }
+		${ activeDragCursorStyles }
+	`;
+};
+
 export const Input = styled( InputControl )`
+	${ dragStyles }
 	${ htmlArrowStyles };
 `;

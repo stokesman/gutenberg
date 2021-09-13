@@ -8,7 +8,6 @@ import type {
 	ChangeEvent,
 	SyntheticEvent,
 } from 'react';
-import type { useDrag } from 'react-use-gesture';
 
 /**
  * Internal dependencies
@@ -19,10 +18,6 @@ import type { WordPressComponentProps } from '../ui/context';
 
 export type LabelPosition = 'top' | 'bottom' | 'side' | 'edge';
 
-export type DragDirection = 'n' | 's' | 'e' | 'w';
-
-export type DragProps = Parameters< Parameters< typeof useDrag >[ 0 ] >[ 0 ];
-
 interface BaseProps {
 	__unstableInputWidth?: CSSProperties[ 'width' ];
 	hideLabelFromVision?: boolean;
@@ -32,9 +27,6 @@ interface BaseProps {
 }
 
 export interface InputFieldProps extends BaseProps {
-	dragDirection?: DragDirection;
-	dragThreshold?: number;
-	isDragEnabled?: boolean;
 	isPressEnterToChange?: boolean;
 	onChange?: (
 		nextValue: string | undefined,
@@ -44,12 +36,8 @@ export interface InputFieldProps extends BaseProps {
 		nextValue: string,
 		event?: SyntheticEvent< HTMLInputElement >
 	) => void;
-	setIsFocused: ( isFocused: boolean ) => void;
 	stateReducer?: StateReducer;
 	value?: string;
-	onDragEnd?: ( dragProps: DragProps ) => void;
-	onDragStart?: ( dragProps: DragProps ) => void;
-	onDrag?: ( dragProps: DragProps ) => void;
 }
 
 export interface InputBaseProps extends BaseProps, FlexProps {

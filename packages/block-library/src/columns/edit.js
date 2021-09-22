@@ -9,12 +9,18 @@ import { get } from 'lodash';
  */
 import { __ } from '@wordpress/i18n';
 import {
+	Button,
+	__experimentalHStack as HStack,
+	Modal,
 	Notice,
 	PanelBody,
+	__experimentalText as Text,
 	ToggleControl,
 	__experimentalToggleGroupControl as ToggleGroupControl,
 	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
+	__experimentalSpacer as Spacer,
 } from '@wordpress/components';
+import { useCopyToClipboard } from '@wordpress/compose';
 import {
 	InspectorControls,
 	useInnerBlocksProps,
@@ -25,16 +31,21 @@ import {
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
 import { useDispatch, useSelect } from '@wordpress/data';
-import { useCallback } from '@wordpress/element';
+import { useCallback, useState } from '@wordpress/element';
 import {
 	createBlocksFromInnerBlocksTemplate,
+	serialize,
 	store as blocksStore,
 } from '@wordpress/blocks';
 
 /**
  * Internal dependencies
  */
-import { getRevisedColumns, getVacantIndexes } from './utils';
+import {
+	getIndexesOccupiedFirst,
+	getRevisedColumns,
+	getVacantIndexes,
+} from './utils';
 
 /**
  * Allowed blocks constant is passed to InnerBlocks precisely as specified here.
@@ -142,19 +153,46 @@ function ColumnsLayoutPanel( {
 	const countMax = 6;
 	const countOptionList = [];
 	for ( let i = 1; i <= countMax; i++ ) {
-		const disabled = i < countMin;
-		const itemProps = { disabled, value: i, label: i, key: i };
+		const itemProps = { value: i, label: i, key: i };
+		// For options that would remove content, prompts decision.
+		if ( i < countMin ) {
+			itemProps.onClick = ( event ) => {
+				event.preventDefault();
+				setPromptCount( i );
+			};
+		}
 		countOptionList.push( <ToggleGroupControlOption { ...itemProps } /> );
 	}
 	if ( count > countMax ) {
 		const itemProps = { value: count, label: count, key: count };
 		countOptionList.push( <ToggleGroupControlOption { ...itemProps } /> );
 	}
+
+	const [ promptCount, setPromptCount ] = useState();
+
+	const promptProps = {
+		count: promptCount,
+		blocks,
+		onDismiss: ( isContinue ) => {
+			if ( isContinue ) updateColumns( promptCount );
+			setPromptCount( undefined );
+		},
+		fromCount: count,
+	};
+
+	// A stable function avoids a redundant call when using keyboard.
+	const onColumnCountChange = useCallback(
+		( value ) => {
+			updateColumns( value );
+		},
+		[ countMin ]
+	);
+
 	return (
 		<PanelBody title={ __( 'Layout' ) }>
 			<ToggleGroupControl
 				label={ __( 'Quantity' ) }
-				onChange={ updateColumns }
+				onChange={ onColumnCountChange }
 				value={ count }
 			>
 				{ countOptionList }
@@ -175,7 +213,51 @@ function ColumnsLayoutPanel( {
 					} )
 				}
 			/>
+			{ promptCount && <PromptContentRemoval { ...promptProps } /> }
 		</PanelBody>
+	);
+}
+
+function PromptContentRemoval( props ) {
+	const { blocks, count, fromCount, onDismiss } = props;
+	const refCopy = useCopyToClipboard( () => {
+		const countFromEnd = count - fromCount;
+		const indexesOccupiedFirst = getIndexesOccupiedFirst( blocks );
+		const indexesToPop = indexesOccupiedFirst.slice( countFromEnd );
+		const contentsForRemoval = blocks
+			.filter( ( item, index ) => indexesToPop.includes( index ) )
+			.reduce(
+				( all, { innerBlocks } ) => [ ...all, ...innerBlocks ],
+				[]
+			);
+		return serialize( contentsForRemoval );
+	} );
+	return (
+		<Modal
+			onRequestClose={ () => onDismiss( false ) }
+			__experimentalHideHeader
+		>
+			<Spacer marginBottom="8">
+				<Text>{ __( 'There is content that will be deleted.' ) }</Text>
+			</Spacer>
+			<HStack alignment="right">
+				<Button variant="tertiary" onClick={ () => onDismiss( false ) }>
+					{ __( 'Cancel' ) }
+				</Button>
+				<Button
+					label={ __( 'Move content to clipboard' ) }
+					variant="secondary"
+					onClick={ () => onDismiss( true ) }
+					ref={ refCopy }
+					showTooltip
+				>
+					{ __( 'Cut' ) }
+				</Button>
+				<Button variant="primary" onClick={ () => onDismiss( true ) }>
+					{ __( 'Delete' ) }
+				</Button>
+			</HStack>
+		</Modal>
 	);
 }
 

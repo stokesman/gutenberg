@@ -193,9 +193,26 @@ export function getVacantIndexes( blockList ) {
 }
 
 /**
+ * Returns an array of indexes of the original block list with the indexes of
+ * occupied columns before the vacant ones and with order otherwise unchanged.
+ *
+ * @param {Array} blockList A block list as returned by `getBlocks`.
+ */
+export function getIndexesOccupiedFirst( blockList ) {
+	const [ occupied, vacant ] = blockList.reduce(
+		( [ a, b ], item, index ) =>
+			item.innerBlocks.length
+				? [ [ ...a, index ], b ]
+				: [ a, [ ...b, index ] ],
+		[ [], [] ]
+	);
+	return [ ...occupied, ...vacant ];
+}
+
+/**
  * Creates new child Column blocks by adding or removing columns and revises
  * existant column widths to grant required or redistribute available space.
- * When removing columns it does not remove any that have their own children.
+ * When removing columns vacant columns are removed before occupied ones.
  *
  * @param {Array}  currentBlocks Current inner blocks.
  * @param {number} newCount      New column count.
@@ -236,12 +253,12 @@ export function getRevisedColumns( currentBlocks, newCount ) {
 			} ),
 		];
 	} else {
-		// Removes vacant columns
-		const vacantIndexes = getVacantIndexes( currentBlocks );
-		const difference = currentCount - newCount;
-		const indexesToRemove = vacantIndexes.slice( -difference );
-		innerBlocks = currentBlocks.filter(
-			( item, index ) => ! indexesToRemove.includes( index )
+		// Remove columns from the end of the list yet prioritize retaining
+		// occupied columns over vacant ones.
+		const indexesOccupiedFirst = getIndexesOccupiedFirst( currentBlocks );
+		const indexesToRetain = indexesOccupiedFirst.slice( 0, newCount );
+		innerBlocks = currentBlocks.filter( ( item, index ) =>
+			indexesToRetain.includes( index )
 		);
 
 		if ( hasExplicitWidths ) {

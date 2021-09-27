@@ -171,18 +171,6 @@ export function useNumberControl( {
 
 	const dragHandlers = isDragEnabled ? bindDragGesture() : {};
 
-	// Works around the odd UA (e.g. Firefox) that does not focus inputs of
-	// type=number when their spinner arrows are pressed.
-	const onMouseDown = ( event ) => {
-		props.onMouseDown?.( event );
-		if (
-			event.currentTarget !==
-			event.currentTarget.ownerDocument.activeElement
-		) {
-			event.currentTarget.focus();
-		}
-	};
-
 	return {
 		...inputControlProps,
 		...dragHandlers,
@@ -194,7 +182,6 @@ export function useNumberControl( {
 		min,
 		max,
 		onKeyDown,
-		onMouseDown,
 		required,
 		step: jumpStep,
 		type: typeProp,

@@ -15,6 +15,9 @@ import { useReducer, useRef } from '@wordpress/element';
 import { InputState, StateReducer, initialInputControlState } from './state';
 import * as actions from './actions';
 
+// Alias for convenience
+type payloadValue = actions.ChangeEventAction[ 'payload' ][ 'value' ];
+
 /**
  * Prepares initialState for the reducer.
  *
@@ -34,13 +37,10 @@ function mergeInitialState(
 }
 
 /*
- * Creates a reducer that opens the channel for external state subscription
- * and modification.
+ * Creates the base reducer for InputControl that accepts an optional reducer
+ * to further modify the next state as received from the base reducer.
  *
- * This technique uses the "stateReducer" design pattern:
- * https://kentcdodds.com/blog/the-state-reducer-pattern/
- *
- * @param  specializedReducer A custom reducer that can subscribe and modify state.
+ * @param  specializedReducer A secondary reducer.
  * @return The reducer.
  */
 function inputControlStateReducer(
@@ -95,61 +95,61 @@ function inputControlStateReducer(
 }
 
 /**
- * This hook sets up the state reducer for InputControl and creates some
- * specialized dispatch methods for each action type.
+ * A `useReducer` hook customized for InputControl. Creates some specialized
+ * dispatch methods for each action type and keeps a ref to track the last
+ * event that triggered a dispatch.
  *
  * This technique uses the "stateReducer" design pattern:
  * https://kentcdodds.com/blog/the-state-reducer-pattern/
  *
- * @param  stateReducer An external state reducer.
+ * @param  stateReducer A state reducer.
  * @param  initialState The initial state for the reducer.
  * @return State, event, dispatch and action specific dispatch methods.
  */
 export function useInputControlStateReducer(
-	stateReducer: StateReducer,
+	stateReducer?: StateReducer,
 	initialState: Partial< InputState > = initialInputControlState
 ) {
 	const refEvent = useRef< SyntheticEvent | undefined >();
-	const setEvent = ( event: SyntheticEvent | undefined ) => {
-		event?.persist();
-		refEvent.current = event;
-	};
 
-	const [ state, dispatch ] = useReducer< StateReducer >(
+	const [ state, baseDispatch ] = useReducer< StateReducer >(
 		inputControlStateReducer( stateReducer ),
 		mergeInitialState( initialState )
 	);
 
-	const createChangeEvent = ( type: actions.ChangeEventAction[ 'type' ] ) => (
-		nextValue: actions.ChangeEventAction[ 'payload' ][ 'value' ],
-		event: actions.ChangeEventAction[ 'payload' ][ 'event' ]
+	// Specialize dispatch methods.
+	const update = ( nextState: Partial< InputState > ) =>
+		baseDispatch( { type: actions.UPDATE, payload: nextState } );
+
+	const dispatch = (
+		type: actions.InputAction[ 'type' ],
+		payload: actions.InputAction[ 'payload' ],
+		event?: SyntheticEvent
 	) => {
-		setEvent( event );
-
-		dispatch( {
-			type,
-			payload: { value: nextValue },
-		} as actions.InputAction );
+		if ( event ) {
+			event.persist();
+			refEvent.current = event;
+		}
+		baseDispatch( { type, payload } as actions.InputAction );
 	};
 
-	// Actions for the reducer
-	const change = createChangeEvent( actions.CHANGE );
-	const reset = createChangeEvent( actions.RESET );
-	const invalidate = ( error: unknown, event: SyntheticEvent ) => {
-		setEvent( event );
-		dispatch( { type: actions.INVALIDATE, payload: { error } } );
-	};
-	const update = ( nextState: InputState ) =>
-		dispatch( { type: actions.UPDATE, payload: nextState } );
+	const change = ( nextValue: payloadValue, event: SyntheticEvent ) =>
+		dispatch( actions.CHANGE, { value: nextValue }, event );
+
+	const reset = ( nextValue: payloadValue, event: SyntheticEvent ) =>
+		dispatch( actions.RESET, { value: nextValue }, event );
+
+	const invalidate = ( error: unknown, event: SyntheticEvent ) =>
+		dispatch( actions.INVALIDATE, { error }, event );
+
 	const commit = (
-		value: string,
-		onValidate: Function,
+		value: payloadValue,
+		onValidate: Function | undefined,
 		event: SyntheticEvent
 	) => {
-		setEvent( event );
 		try {
 			onValidate?.( value, event );
-			dispatch( { type: actions.COMMIT, payload: { value } } );
+			dispatch( actions.COMMIT, { value }, event );
 		} catch ( error ) {
 			invalidate( error, event );
 		}
@@ -159,7 +159,7 @@ export function useInputControlStateReducer(
 		change,
 		commit,
 		dispatch,
-		event: refEvent.current,
+		event: refEvent,
 		invalidate,
 		reset,
 		state,

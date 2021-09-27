@@ -1,8 +1,7 @@
 /**
- * External dependencies
+ * Internal dependencies
  */
-// eslint-disable-next-line no-restricted-imports
-import type { SyntheticEvent } from 'react';
+import type { InputState } from './state';
 
 export const CHANGE = 'CHANGE';
 export const COMMIT = 'COMMIT';
@@ -10,13 +9,9 @@ export const INVALIDATE = 'INVALIDATE';
 export const RESET = 'RESET';
 export const UPDATE = 'UPDATE';
 
-interface EventPayload {
-	event?: SyntheticEvent;
-}
-
 interface Action< Type, ExtraPayload = {} > {
 	type: Type;
-	payload: EventPayload & ExtraPayload;
+	payload: ExtraPayload;
 }
 
 interface ValuePayload {
@@ -26,7 +21,7 @@ interface ValuePayload {
 export type ChangeAction = Action< typeof CHANGE, ValuePayload >;
 export type CommitAction = Action< typeof COMMIT, ValuePayload >;
 export type ResetAction = Action< typeof RESET, Partial< ValuePayload > >;
-export type UpdateAction = Action< typeof UPDATE, ValuePayload >;
+export type UpdateAction = Action< typeof UPDATE, Partial< InputState > >;
 export type InvalidateAction = Action< typeof INVALIDATE, { error: unknown } >;
 
 export type ChangeEventAction = ChangeAction | ResetAction | UpdateAction;

@@ -12,32 +12,19 @@ import type {
 /**
  * Internal dependencies
  */
-import type { StateReducer } from './reducer/state';
+import type { StateReducer, InputState } from './reducer/state';
 import type { FlexProps } from '../flex/types';
 import type { WordPressComponentProps } from '../ui/context';
+import type { InputAction } from './reducer/actions';
 
 export type LabelPosition = 'top' | 'bottom' | 'side' | 'edge';
 
 interface BaseProps {
 	__unstableInputWidth?: CSSProperties[ 'width' ];
 	hideLabelFromVision?: boolean;
-	isFocused: boolean;
+	isFocused?: boolean;
 	labelPosition?: LabelPosition;
 	size?: 'default' | 'small';
-}
-
-export interface InputFieldProps extends BaseProps {
-	isPressEnterToChange?: boolean;
-	onChange?: (
-		nextValue: string | undefined,
-		extra: { event: ChangeEvent< HTMLInputElement > }
-	) => void;
-	onValidate?: (
-		nextValue: string,
-		event?: SyntheticEvent< HTMLInputElement >
-	) => void;
-	stateReducer?: StateReducer;
-	value?: string;
 }
 
 export interface InputBaseProps extends BaseProps, FlexProps {
@@ -50,23 +37,54 @@ export interface InputBaseProps extends BaseProps, FlexProps {
 	label?: ReactNode;
 }
 
+type DispatchValueAndEvent = (
+	value: string,
+	event: SyntheticEvent< HTMLInputElement >
+) => void;
+
+export interface InputControlActionDispatchers {
+	change: DispatchValueAndEvent;
+	commit: (
+		value: string,
+		onValidate: () => void,
+		event: SyntheticEvent< HTMLInputElement >
+	) => void;
+	dispatch: (
+		type: InputAction[ 'type' ],
+		payload: InputAction[ 'payload' ],
+		event?: SyntheticEvent
+	) => void;
+	invalidate: DispatchValueAndEvent;
+	reset: DispatchValueAndEvent;
+	update: ( value: Partial< InputState > ) => void;
+}
+
 export interface InputControlProps
-	extends Omit< InputBaseProps, 'children' | 'isFocused' >,
+	extends Omit< InputBaseProps, 'children' >,
 		/**
-		 * The `prefix` prop in `WordPressComponentProps< InputFieldProps, 'input', false >` comes from the
+		 * The `prefix` prop in `WordPressComponentProps< BaseProps, 'input', false >` comes from the
 		 * `HTMLInputAttributes` and clashes with the one from `InputBaseProps`. So we have to omit it from
-		 * `WordPressComponentProps< InputFieldProps, 'input', false >` in order that `InputBaseProps[ 'prefix' ]`
+		 * `WordPressComponentProps< BaseProps, 'input', false >` in order that `InputBaseProps[ 'prefix' ]`
 		 * be the only prefix prop. Otherwise it tries to do a union of the two prefix properties and you end up
 		 * with an unresolvable type.
-		 *
-		 * `isFocused` and `setIsFocused` are managed internally by the InputControl, but the rest of the props
-		 * for InputField are passed through.
 		 */
-		Omit<
-			WordPressComponentProps< InputFieldProps, 'input', false >,
-			'stateReducer' | 'prefix' | 'isFocused' | 'setIsFocused'
-		> {
-	__unstableStateReducer?: InputFieldProps[ 'stateReducer' ];
+		Omit< WordPressComponentProps< BaseProps, 'input', false >, 'prefix' > {
+	actions: InputControlActionDispatchers;
+}
+
+export interface InputControlHookProps
+	extends Omit< InputControlProps, 'isFocused' | 'onChange' | 'actions' > {
+	isPressEnterToChange?: boolean;
+	onChange?: (
+		nextValue: string | undefined,
+		extra: { event: ChangeEvent< HTMLInputElement > }
+	) => void;
+	onValidate?: (
+		nextValue: string,
+		event?: SyntheticEvent< HTMLInputElement >
+	) => void;
+	value?: string;
+	__unstableStateReducer?: StateReducer;
 }
 
 export interface InputControlLabelProps {

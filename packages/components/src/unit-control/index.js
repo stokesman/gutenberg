@@ -15,6 +15,7 @@ import { ENTER } from '@wordpress/keycodes';
  * Internal dependencies
  */
 import * as inputControlActionTypes from '../input-control/reducer/actions';
+import { useNumberControl } from '../number-control';
 import { Root, ValueInput } from './styles/unit-control-styles';
 import UnitSelectControl from './unit-select-control';
 import {
@@ -35,10 +36,9 @@ function UnitControl(
 		isPressEnterToChange = false,
 		isResetValueOnUnitChange = false,
 		isUnitSelectTabbable = true,
-		label,
 		onChange = noop,
 		onUnitChange = noop,
-		size = 'default',
+		size,
 		style,
 		unit: unitProp,
 		units: unitsProp = CSS_UNITS,
@@ -173,28 +173,26 @@ function UnitControl(
 		step = activeUnit?.step ?? 1;
 	}
 
+	const valueInputProps = useNumberControl( {
+		...omit( props, [ 'children' ] ),
+		autoComplete,
+		className: classes,
+		disabled,
+		disableUnits,
+		isPressEnterToChange,
+		onBlur: handleOnBlur,
+		onKeyDown: handleOnKeyDown,
+		onChange: handleOnChange,
+		suffix: inputSuffix,
+		type: isPressEnterToChange ? 'text' : 'number',
+		size,
+		value,
+		__unstableStateReducer: unitControlStateReducer,
+	} );
+
 	return (
 		<Root className="components-unit-control-wrapper" style={ style }>
-			<ValueInput
-				aria-label={ label }
-				type={ isPressEnterToChange ? 'text' : 'number' }
-				{ ...omit( props, [ 'children' ] ) }
-				autoComplete={ autoComplete }
-				className={ classes }
-				disabled={ disabled }
-				disableUnits={ disableUnits }
-				isPressEnterToChange={ isPressEnterToChange }
-				label={ label }
-				onBlur={ handleOnBlur }
-				onKeyDown={ handleOnKeyDown }
-				onChange={ handleOnChange }
-				ref={ ref }
-				size={ size }
-				suffix={ inputSuffix }
-				value={ value }
-				step={ step }
-				__unstableStateReducer={ unitControlStateReducer }
-			/>
+			<ValueInput { ...valueInputProps } ref={ ref } />
 		</Root>
 	);
 }

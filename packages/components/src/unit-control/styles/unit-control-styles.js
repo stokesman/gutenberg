@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
  * Internal dependencies
  */
 import { COLORS, rtl } from '../../utils';
-import NumberControl from '../../number-control';
+import { NumberControlElement } from '../../number-control';
 
 export const Root = styled.div`
 	box-sizing: border-box;
@@ -37,7 +37,7 @@ const arrowStyles = ( { disableUnits } ) => {
 // TODO: Resolve need to use &&& to increase specificity
 // https://github.com/WordPress/gutenberg/issues/18483
 
-export const ValueInput = styled( NumberControl )`
+export const ValueInput = styled( NumberControlElement )`
 	&&& {
 		input {
 			appearance: none;

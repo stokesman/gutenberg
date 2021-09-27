@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 /**
  * Internal dependencies
  */
-import InputControl from '../../input-control';
+import { InputControlElement } from '../../input-control';
 
 // TODO seems that htmlArrowStyles and defaultArrowStyles should be combined
 const htmlArrowStyles = ( { hideHTMLArrows } ) => {
@@ -57,7 +57,7 @@ const dragStyles = ( { isDragging, dragCursor } ) => {
 	`;
 };
 
-export const Input = styled( InputControl )`
+export const NumberControlElement = styled( InputControlElement )`
 	${ dragStyles }
 	${ htmlArrowStyles };
 `;

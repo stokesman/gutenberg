@@ -9,7 +9,7 @@ import classNames from 'classnames';
  * WordPress dependencies
  */
 import { useInstanceId } from '@wordpress/compose';
-import { useRef, useState } from '@wordpress/element';
+import { useRef } from '@wordpress/element';
 import { ENTER } from '@wordpress/keycodes';
 
 /**
@@ -41,8 +41,6 @@ export function useInputControl( {
 	type,
 	...props
 }: InputControlHookProps ): InputControlProps {
-	const [ isFocused, setIsFocused ] = useState( false );
-
 	const id = useUniqueId( idProp );
 	const classes = classNames( 'components-input-control', className );
 
@@ -60,7 +58,7 @@ export function useInputControl( {
 
 	const { change, commit, reset, update } = actions;
 
-	const { value, isDirty } = state;
+	const { value, isDirty, isFocused } = state;
 	const wasDirtyOnBlur = useRef( false );
 
 	/*
@@ -86,8 +84,7 @@ export function useInputControl( {
 
 	const onBlur = ( event: FocusEvent< HTMLInputElement > ) => {
 		props.onBlur?.( event );
-		setIsFocused( false );
-		// update( { isFocused: false } );
+		update( { isFocused: false } );
 
 		/**
 		 * If isPressEnterToChange is set, this commits the value to
@@ -106,8 +103,7 @@ export function useInputControl( {
 
 	const onFocus = ( event: FocusEvent< HTMLInputElement > ) => {
 		props.onFocus?.( event );
-		setIsFocused( true );
-		// update( { isFocused: true } );
+		update( { isFocused: true } );
 	};
 
 	const onChange = ( event: ChangeEvent< HTMLInputElement > ) => {

@@ -14,6 +14,7 @@ export interface InputState {
 	error: unknown;
 	initialValue?: string;
 	isDirty: boolean;
+	isFocused: boolean;
 	isPressEnterToChange: boolean;
 	value?: string;
 }
@@ -25,6 +26,7 @@ export const initialInputControlState: InputState = {
 	error: null,
 	initialValue: '',
 	isDirty: false,
+	isFocused: false,
 	isPressEnterToChange: false,
 	value: '',
 };

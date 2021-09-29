@@ -7,6 +7,7 @@ import type { SyntheticEvent } from 'react';
 /**
  * Internal dependencies
  */
+import type { InputState } from './state';
 import type { DragProps } from '../types';
 
 export const CHANGE = 'CHANGE';
@@ -43,7 +44,7 @@ export type DragStartAction = Action< typeof DRAG_START, DragProps >;
 export type DragEndAction = Action< typeof DRAG_END, DragProps >;
 export type DragAction = Action< typeof DRAG, DragProps >;
 export type ResetAction = Action< typeof RESET, Partial< ValuePayload > >;
-export type UpdateAction = Action< typeof UPDATE, ValuePayload >;
+export type UpdateAction = Action< typeof UPDATE, Partial< InputState > >;
 export type InvalidateAction = Action< typeof INVALIDATE, { error: unknown } >;
 
 export type ChangeEventAction =
@@ -61,3 +62,10 @@ export type InputAction =
 	| KeyEventAction
 	| DragEventAction
 	| InvalidateAction;
+
+export type Dispatcher = (
+	$1: string | {} | unknown,
+	$2?: SyntheticEvent< HTMLInputElement >
+) => void;
+
+export type ActionDispatchers = { [ key: string ]: Dispatcher };

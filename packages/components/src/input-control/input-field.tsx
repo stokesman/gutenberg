@@ -17,7 +17,7 @@ import type {
 /**
  * WordPress dependencies
  */
-import { forwardRef, useRef } from '@wordpress/element';
+import { forwardRef } from '@wordpress/element';
 import { UP, DOWN, ENTER } from '@wordpress/keycodes';
 /**
  * Internal dependencies
@@ -25,22 +25,22 @@ import { UP, DOWN, ENTER } from '@wordpress/keycodes';
 import type { WordPressComponentProps } from '../ui/context';
 import { useDragCursor } from './utils';
 import { Input } from './styles/input-control-styles';
-import { useInputControlStateReducer } from './reducer/reducer';
 import { isValueEmpty } from '../utils/values';
-import { useUpdateEffect } from '../utils';
 import type { InputFieldProps } from './types';
 
 function InputField(
 	{
+		actions,
 		disabled = false,
 		dragDirection = 'n',
 		dragThreshold = 10,
 		id,
-		isDragEnabled = false,
+		isDirty,
+		isDragEnabled,
+		isDragging,
 		isFocused,
-		isPressEnterToChange = false,
+		isPressEnterToChange,
 		onBlur = noop,
-		onChange = noop,
 		onDrag = noop,
 		onDragEnd = noop,
 		onDragStart = noop,
@@ -48,18 +48,14 @@ function InputField(
 		onKeyDown = noop,
 		onValidate = noop,
 		size = 'default',
-		setIsFocused,
-		stateReducer = ( state: any ) => state,
-		value: valueProp,
+		value,
 		type,
+		wasDirtyOnBlur,
 		...props
 	}: WordPressComponentProps< InputFieldProps, 'input', false >,
 	ref: Ref< HTMLInputElement >
 ) {
 	const {
-		// State
-		state,
-		// Actions
 		change,
 		commit,
 		drag,
@@ -71,41 +67,13 @@ function InputField(
 		pressUp,
 		reset,
 		update,
-	} = useInputControlStateReducer( stateReducer, {
-		isDragEnabled,
-		value: valueProp,
-		isPressEnterToChange,
-	} );
-
-	const { _event, value, isDragging, isDirty } = state;
-	const wasDirtyOnBlur = useRef( false );
+	} = actions;
 
 	const dragCursor = useDragCursor( isDragging, dragDirection );
 
-	/*
-	 * Handles synchronization of external and internal value state.
-	 * If not focused and did not hold a dirty value[1] on blur
-	 * updates the value from the props. Otherwise if not holding
-	 * a dirty value[1] propagates the value and event through onChange.
-	 * [1] value is only made dirty if isPressEnterToChange is true
-	 */
-	useUpdateEffect( () => {
-		if ( valueProp === value ) {
-			return;
-		}
-		if ( ! isFocused && ! wasDirtyOnBlur.current ) {
-			update( valueProp, _event as SyntheticEvent );
-		} else if ( ! isDirty ) {
-			onChange( value, {
-				event: _event as ChangeEvent< HTMLInputElement >,
-			} );
-			wasDirtyOnBlur.current = false;
-		}
-	}, [ value, isDirty, isFocused, valueProp ] );
-
 	const handleOnBlur = ( event: FocusEvent< HTMLInputElement > ) => {
 		onBlur( event );
-		setIsFocused?.( false );
+		update( { isFocused: false } );
 
 		/**
 		 * If isPressEnterToChange is set, this commits the value to
@@ -116,14 +84,14 @@ function InputField(
 			if ( ! isValueEmpty( value ) ) {
 				handleOnCommit( event );
 			} else {
-				reset( valueProp, event );
+				reset( undefined, event );
 			}
 		}
 	};
 
 	const handleOnFocus = ( event: FocusEvent< HTMLInputElement > ) => {
 		onFocus( event );
-		setIsFocused?.( true );
+		update( { isFocused: true, initialValue: value } );
 	};
 
 	const handleOnChange = ( event: ChangeEvent< HTMLInputElement > ) => {

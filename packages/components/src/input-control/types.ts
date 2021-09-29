@@ -3,16 +3,17 @@
  */
 // eslint-disable-next-line no-restricted-imports
 import type {
+	ChangeEvent,
 	CSSProperties,
 	ReactNode,
-	ChangeEvent,
-	SyntheticEvent,
+	MutableRefObject,
 } from 'react';
 import type { useDrag } from 'react-use-gesture';
 
 /**
  * Internal dependencies
  */
+import type { ActionDispatchers } from './reducer/actions';
 import type { StateReducer } from './reducer/state';
 import type { FlexProps } from '../flex/types';
 import type { WordPressComponentProps } from '../ui/context';
@@ -32,24 +33,19 @@ interface BaseProps {
 }
 
 export interface InputFieldProps extends BaseProps {
+	actions: ActionDispatchers;
 	dragDirection?: DragDirection;
 	dragThreshold?: number;
+	isDirty: boolean;
+	isDragging: boolean;
 	isDragEnabled?: boolean;
 	isPressEnterToChange?: boolean;
-	onChange?: (
-		nextValue: string | undefined,
-		extra: { event: ChangeEvent< HTMLInputElement > }
-	) => void;
-	onValidate?: (
-		nextValue: string,
-		event?: SyntheticEvent< HTMLInputElement >
-	) => void;
-	setIsFocused: ( isFocused: boolean ) => void;
-	stateReducer?: StateReducer;
 	value?: string;
 	onDragEnd?: ( dragProps: DragProps ) => void;
 	onDragStart?: ( dragProps: DragProps ) => void;
 	onDrag?: ( dragProps: DragProps ) => void;
+	onValidate?: ( nextValue: string ) => void;
+	wasDirtyOnBlur: MutableRefObject< boolean >;
 }
 
 export interface InputBaseProps extends BaseProps, FlexProps {
@@ -71,14 +67,23 @@ export interface InputControlProps
 		 * be the only prefix prop. Otherwise it tries to do a union of the two prefix properties and you end up
 		 * with an unresolvable type.
 		 *
-		 * `isFocused` and `setIsFocused` are managed internally by the InputControl, but the rest of the props
-		 * for InputField are passed through.
+		 * The other omissions from InputFieldProps are provided internally.
 		 */
 		Omit<
 			WordPressComponentProps< InputFieldProps, 'input', false >,
-			'stateReducer' | 'prefix' | 'isFocused' | 'setIsFocused'
+			| 'actions'
+			| 'isDirty'
+			| 'isDragging'
+			| 'isFocused'
+			| 'onChange'
+			| 'prefix'
+			| 'wasDirtyOnBlur'
 		> {
-	__unstableStateReducer?: InputFieldProps[ 'stateReducer' ];
+	onChange?: (
+		nextValue: string | undefined,
+		extra: { event: ChangeEvent< HTMLInputElement > }
+	) => void;
+	__unstableStateReducer?: StateReducer;
 }
 
 export interface InputControlLabelProps {

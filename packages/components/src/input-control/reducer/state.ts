@@ -16,6 +16,7 @@ export interface InputState {
 	isDirty: boolean;
 	isDragEnabled: boolean;
 	isDragging: boolean;
+	isFocused: boolean;
 	isPressEnterToChange: boolean;
 	value?: string;
 }
@@ -31,6 +32,7 @@ export const initialInputControlState: InputState = {
 	isDirty: false,
 	isDragEnabled: false,
 	isDragging: false,
+	isFocused: false,
 	isPressEnterToChange: false,
 	value: '',
 };

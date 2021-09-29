@@ -71,6 +71,11 @@ function inputControlStateReducer(
 	composedStateReducers: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
+		// Update actions merely merge state and return without further ado.
+		if ( action.type === actions.UPDATE ) {
+			return { ...state, ...action.payload };
+		}
+
 		const nextState = { ...state };
 
 		switch ( action.type ) {
@@ -118,11 +123,6 @@ function inputControlStateReducer(
 				nextState.error = null;
 				nextState.isDirty = false;
 				nextState.value = action.payload.value || state.initialValue;
-				break;
-
-			case actions.UPDATE:
-				nextState.value = action.payload.value;
-				nextState.isDirty = false;
 				break;
 
 			/**
@@ -217,7 +217,6 @@ export function useInputControlStateReducer(
 		dispatch( { type: actions.INVALIDATE, payload: { error, event } } );
 	const reset = createChangeEvent( actions.RESET );
 	const commit = createChangeEvent( actions.COMMIT );
-	const update = createChangeEvent( actions.UPDATE );
 
 	const dragStart = createDragEvent( actions.DRAG_START );
 	const drag = createDragEvent( actions.DRAG );
@@ -226,6 +225,12 @@ export function useInputControlStateReducer(
 	const pressUp = createKeyEvent( actions.PRESS_UP );
 	const pressDown = createKeyEvent( actions.PRESS_DOWN );
 	const pressEnter = createKeyEvent( actions.PRESS_ENTER );
+
+	const update = ( nextState: Partial< InputState > ) =>
+		dispatch( {
+			type: actions.UPDATE,
+			payload: nextState,
+		} );
 
 	return {
 		change,

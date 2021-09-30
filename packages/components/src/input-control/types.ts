@@ -2,12 +2,7 @@
  * External dependencies
  */
 // eslint-disable-next-line no-restricted-imports
-import type {
-	ChangeEvent,
-	CSSProperties,
-	ReactNode,
-	MutableRefObject,
-} from 'react';
+import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import type { useDrag } from 'react-use-gesture';
 
 /**
@@ -45,7 +40,6 @@ export interface InputFieldProps extends BaseProps {
 	onDragStart?: ( dragProps: DragProps ) => void;
 	onDrag?: ( dragProps: DragProps ) => void;
 	onValidate?: ( nextValue: string ) => void;
-	wasDirtyOnBlur: MutableRefObject< boolean >;
 }
 
 export interface InputBaseProps extends BaseProps, FlexProps {

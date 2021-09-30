@@ -71,12 +71,13 @@ function inputControlStateReducer(
 	composedStateReducers: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
+		// Ensures undefined for the nextState._event if there was no event
+		const nextState = { ...state, _event: action.payload?.event };
+
 		// Update actions merely merge state and return without further ado.
 		if ( action.type === actions.UPDATE ) {
-			return { ...state, ...action.payload };
+			return Object.assign( nextState, action.payload );
 		}
-
-		const nextState = { ...state };
 
 		switch ( action.type ) {
 			/**
@@ -132,11 +133,6 @@ function inputControlStateReducer(
 				nextState.error = action.payload.error;
 				break;
 		}
-
-		if ( action.payload.event ) {
-			nextState._event = action.payload.event;
-		}
-
 		/**
 		 * Send the nextState + action to the composedReducers via
 		 * this "bridge" mechanism. This allows external stateReducers
@@ -147,27 +143,29 @@ function inputControlStateReducer(
 }
 
 /**
- * A custom hook that connects and external stateReducer with an internal
- * reducer. This hook manages the internal state of InputControl.
- * However, by connecting an external stateReducer function, other
- * components can react to actions as well as modify state before it is
- * applied.
+ * Handles state for InputControl through `useReducer` while keeping the value
+ * property updated to the incoming value when a render has occured without a
+ * dispatch. Also creates a specialized dispatch function for each action type.
  *
- * This technique uses the "stateReducer" design pattern:
- * https://kentcdodds.com/blog/the-state-reducer-pattern/
- *
- * @param  stateReducer An external state reducer.
- * @param  initialState The initial state for the reducer.
- * @return State, dispatch, and a collection of actions.
+ * @param  stateReducer  An external state reducer.
+ * @param  incomingState Used to set the initial state and for conditional
+ *                       updates to the value property of the state.
+ * @return State, dispatch and a collection of action dispatchers.
  */
 export function useInputControlStateReducer(
 	stateReducer: StateReducer = initialStateReducer,
-	initialState: Partial< InputState > = initialInputControlState
+	incomingState: Partial< InputState > = initialInputControlState
 ) {
 	const [ state, dispatch ] = useReducer< StateReducer >(
 		inputControlStateReducer( stateReducer ),
-		mergeInitialState( initialState )
+		mergeInitialState( incomingState )
 	);
+
+	// Keeps the value in state synchronized with the incoming value. Applies
+	// only on renders for which no input event has occurred.
+	if ( ! state._event ) {
+		state.value = incomingState.value;
+	}
 
 	const createChangeEvent = ( type: actions.ChangeEventAction[ 'type' ] ) => (
 		nextValue: actions.ChangeEventAction[ 'payload' ][ 'value' ],

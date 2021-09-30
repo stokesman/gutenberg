@@ -10,7 +10,7 @@ import type { ChangeEvent, Ref } from 'react';
  * WordPress dependencies
  */
 import { useInstanceId } from '@wordpress/compose';
-import { forwardRef, useRef } from '@wordpress/element';
+import { forwardRef, useEffect } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -20,7 +20,6 @@ import InputField from './input-field';
 import type { InputControlProps } from './types';
 import type { ActionDispatchers } from './reducer/actions';
 import { useInputControlStateReducer } from './reducer/reducer';
-import { useUpdateEffect } from '../utils';
 
 function useUniqueId( idProp?: string ) {
 	const instanceId = useInstanceId( InputControl );
@@ -53,38 +52,27 @@ export function InputControl(
 	const id = useUniqueId( idProp );
 	const classes = classNames( 'components-input-control', className );
 
+	const valuePropString = String( valueProp );
 	const {
 		// State
+		state,
 		state: { _event, value, isDragging, isDirty, isFocused },
 		// Actions
 		...actions
 	} = useInputControlStateReducer( stateReducer, {
 		isDragEnabled,
-		value: valueProp,
+		value: valuePropString,
 		isPressEnterToChange,
 	} );
 
-	const wasDirtyOnBlur = useRef( false );
-	/*
-	 * Handles synchronization of external and internal value state.
-	 * If not focused and did not hold a dirty value[1] on blur
-	 * updates the value from the props. Otherwise if not holding
-	 * a dirty value[1] propagates the value and event through onChange.
-	 * [1] value is only made dirty if isPressEnterToChange is true
-	 */
-	useUpdateEffect( () => {
-		if ( valueProp === value ) {
-			return;
-		}
-		if ( ! isFocused && ! wasDirtyOnBlur.current ) {
-			actions.update( { value: valueProp, isDirty: false } );
-		} else if ( ! isDirty ) {
+	// Propagates the value when it has updated due to a reducer action.
+	useEffect( () => {
+		if ( _event ) {
 			onChange( value, {
 				event: _event as ChangeEvent< HTMLInputElement >,
 			} );
-			wasDirtyOnBlur.current = false;
 		}
-	}, [ value, isDirty, isFocused, valueProp ] );
+	}, [ value, _event ] );
 
 	return (
 		<InputBase
@@ -109,13 +97,13 @@ export function InputControl(
 				disabled={ disabled }
 				id={ id }
 				isDirty={ isDirty }
+				isDragEnabled={ state.isDragEnabled }
 				isDragging={ isDragging }
 				isFocused={ isFocused }
-				isPressEnterToChange={ isPressEnterToChange }
+				isPressEnterToChange={ state.isPressEnterToChange }
 				ref={ ref }
 				size={ size }
 				value={ value }
-				wasDirtyOnBlur={ wasDirtyOnBlur }
 			/>
 		</InputBase>
 	);

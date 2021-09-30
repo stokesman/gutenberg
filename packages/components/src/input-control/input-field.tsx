@@ -11,7 +11,6 @@ import type {
 	PointerEvent,
 	FocusEvent,
 	Ref,
-	MouseEvent,
 } from 'react';
 
 /**
@@ -50,7 +49,6 @@ function InputField(
 		size = 'default',
 		value,
 		type,
-		wasDirtyOnBlur,
 		...props
 	}: WordPressComponentProps< InputFieldProps, 'input', false >,
 	ref: Ref< HTMLInputElement >
@@ -80,7 +78,6 @@ function InputField(
 		 * the onChange callback.
 		 */
 		if ( isPressEnterToChange && isDirty ) {
-			wasDirtyOnBlur.current = true;
 			if ( ! isValueEmpty( value ) ) {
 				handleOnCommit( event );
 			} else {
@@ -169,22 +166,6 @@ function InputField(
 	);
 
 	const dragProps = isDragEnabled ? dragGestureProps() : {};
-	/*
-	 * Works around the odd UA (e.g. Firefox) that does not focus inputs of
-	 * type=number when their spinner arrows are pressed.
-	 */
-	let handleOnMouseDown;
-	if ( type === 'number' ) {
-		handleOnMouseDown = ( event: MouseEvent< HTMLInputElement > ) => {
-			props.onMouseDown?.( event );
-			if (
-				event.currentTarget !==
-				event.currentTarget.ownerDocument.activeElement
-			) {
-				event.currentTarget.focus();
-			}
-		};
-	}
 
 	return (
 		<Input
@@ -199,7 +180,6 @@ function InputField(
 			onChange={ handleOnChange }
 			onFocus={ handleOnFocus }
 			onKeyDown={ handleOnKeyDown }
-			onMouseDown={ handleOnMouseDown }
 			ref={ ref }
 			inputSize={ size }
 			value={ value }

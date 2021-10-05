@@ -109,6 +109,10 @@ function inputControlStateReducer(
 
 				break;
 
+			case actions.STEP:
+				nextState.isDirty = false;
+				break;
+
 			case actions.COMMIT:
 				nextState.value = action.payload.value;
 				nextState.isDirty = false;
@@ -188,6 +192,16 @@ export function useInputControlStateReducer(
 		} as actions.InputAction );
 	};
 
+	const createStepEvent = ( type: actions.StepAction[ 'type' ] ) => (
+		step: actions.StepAction[ 'payload' ][ 'value' ],
+		isShift: actions.StepAction[ 'payload' ][ 'isShift' ],
+		event: actions.ChangeEventAction[ 'payload' ][ 'event' ]
+	) =>
+		dispatch( {
+			type,
+			payload: { step, isShift, event },
+		} as actions.InputAction );
+
 	const createKeyEvent = ( type: actions.KeyEventAction[ 'type' ] ) => (
 		event: actions.KeyEventAction[ 'payload' ][ 'event' ]
 	) => {
@@ -219,6 +233,8 @@ export function useInputControlStateReducer(
 	const commit = createChangeEvent( actions.COMMIT );
 	const update = createChangeEvent( actions.UPDATE );
 
+	const step = createStepEvent( actions.STEP );
+
 	const dragStart = createDragEvent( actions.DRAG_START );
 	const drag = createDragEvent( actions.DRAG );
 	const dragEnd = createDragEvent( actions.DRAG_END );
@@ -239,6 +255,7 @@ export function useInputControlStateReducer(
 		pressEnter,
 		pressUp,
 		reset,
+		step,
 		state,
 		update,
 	} as const;

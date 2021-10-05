@@ -66,10 +66,9 @@ function InputField(
 		dragEnd,
 		dragStart,
 		invalidate,
-		pressDown,
 		pressEnter,
-		pressUp,
 		reset,
+		step,
 		update,
 	} = useInputControlStateReducer( stateReducer, {
 		isDragEnabled,
@@ -127,7 +126,13 @@ function InputField(
 	};
 
 	const handleOnChange = ( event: ChangeEvent< HTMLInputElement > ) => {
-		const nextValue = event.target.value;
+		const nextValue = parseFloat( event.target.value );
+		// Condition can only be true for type="number" inputs
+		if ( isPrimaryWithShiftHeld.current ) {
+			const diff = nextValue - parseFloat( value );
+			step( Math.sign( diff ), true, event );
+			return;
+		}
 		change( nextValue, event );
 	};
 
@@ -143,16 +148,17 @@ function InputField(
 	};
 
 	const handleOnKeyDown = ( event: KeyboardEvent< HTMLInputElement > ) => {
-		const { keyCode } = event;
+		const { keyCode, shiftKey } = event;
 		onKeyDown( event );
 
 		switch ( keyCode ) {
 			case UP:
-				pressUp( event );
-				break;
-
+			// falls through
 			case DOWN:
-				pressDown( event );
+				if ( type === 'number' ) {
+					step( keyCode === UP ? 1 : -1, shiftKey, event );
+					event.preventDefault();
+				}
 				break;
 
 			case ENTER:
@@ -201,20 +207,30 @@ function InputField(
 	);
 
 	const dragProps = isDragEnabled ? dragGestureProps() : {};
-	/*
-	 * Works around the odd UA (e.g. Firefox) that does not focus inputs of
-	 * type=number when their spinner arrows are pressed.
-	 */
-	let handleOnMouseDown;
+
+	const isPrimaryWithShiftHeld = useRef( false );
+	let onMouseDown;
+	let onMouseUp;
 	if ( type === 'number' ) {
-		handleOnMouseDown = ( event: MouseEvent< HTMLInputElement > ) => {
+		const testPrimaryWithShiftHeld = ( { button, shiftKey } ) =>
+			button === 0 && shiftKey;
+
+		onMouseDown = ( event: MouseEvent< HTMLInputElement > ) => {
 			props.onMouseDown?.( event );
-			if (
-				event.currentTarget !==
-				event.currentTarget.ownerDocument.activeElement
-			) {
+			const { currentTarget } = event;
+			/*
+			 * Works around the odd UA (e.g. Firefox) that does not focus
+			 * inputs of type=number when their spinner arrows are pressed.
+			 */
+			if ( currentTarget !== currentTarget.ownerDocument.activeElement ) {
 				event.currentTarget.focus();
 			}
+
+			isPrimaryWithShiftHeld.current = testPrimaryWithShiftHeld( event );
+		};
+
+		onMouseUp = ( event: MouseEvent< HTMLInputElement > ) => {
+			isPrimaryWithShiftHeld.current = testPrimaryWithShiftHeld( event );
 		};
 	}
 
@@ -231,7 +247,8 @@ function InputField(
 			onChange={ handleOnChange }
 			onFocus={ handleOnFocus }
 			onKeyDown={ handleOnKeyDown }
-			onMouseDown={ handleOnMouseDown }
+			onMouseDown={ onMouseDown }
+			onMouseUp={ onMouseUp }
 			ref={ ref }
 			inputSize={ size }
 			value={ value }

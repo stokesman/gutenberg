@@ -16,7 +16,7 @@ import { isRTL } from '@wordpress/i18n';
 import { Input } from './styles/number-control-styles';
 import * as inputControlActionTypes from '../input-control/reducer/actions';
 import { composeStateReducers } from '../input-control/reducer/reducer';
-import { add, subtract, roundClamp } from '../utils/math';
+import { add, roundClamp } from '../utils/math';
 import { isValueEmpty } from '../utils/values';
 
 export function NumberControl(
@@ -63,42 +63,7 @@ export function NumberControl(
 	 */
 	const numberControlStateReducer = ( state, action ) => {
 		const { type, payload } = action;
-		const event = payload?.event;
 		const currentValue = state.value;
-
-		/**
-		 * Handles custom UP and DOWN Keyboard events
-		 */
-		if (
-			type === inputControlActionTypes.PRESS_UP ||
-			type === inputControlActionTypes.PRESS_DOWN
-		) {
-			const enableShift = event.shiftKey && isShiftStepEnabled;
-
-			const incrementalValue = enableShift
-				? parseFloat( shiftStep ) * baseStep
-				: baseStep;
-			let nextValue = isValueEmpty( currentValue )
-				? baseValue
-				: currentValue;
-
-			if ( event?.preventDefault ) {
-				event.preventDefault();
-			}
-
-			if ( type === inputControlActionTypes.PRESS_UP ) {
-				nextValue = add( nextValue, incrementalValue );
-			}
-
-			if ( type === inputControlActionTypes.PRESS_DOWN ) {
-				nextValue = subtract( nextValue, incrementalValue );
-			}
-
-			state.value = constrainValue(
-				nextValue,
-				enableShift ? incrementalValue : null
-			);
-		}
 
 		/**
 		 * Handles drag to update events
@@ -158,6 +123,23 @@ export function NumberControl(
 			state.value = applyEmptyValue
 				? currentValue
 				: constrainValue( currentValue );
+		}
+
+		/**
+		 * Handles step actions
+		 */
+		if ( type === inputControlActionTypes.STEP ) {
+			const enableShift = isShiftStepEnabled && payload.isShift;
+			const nextStep = enableShift
+				? baseStep * shiftStep * payload.step
+				: payload.step;
+			const fromValue = isValueEmpty( currentValue )
+				? baseValue
+				: currentValue;
+			state.value = constrainValue(
+				add( fromValue, nextStep ),
+				enableShift ? shiftStep : null
+			);
 		}
 
 		return state;

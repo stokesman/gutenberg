@@ -147,6 +147,12 @@ function RangeControl(
 		}
 	};
 
+	const handleOnInputNumberValidate = ( nextValue, event ) => {
+		if ( ! event.target.validity.valid ) {
+			handleOnChange( nextValue );
+		}
+	};
+
 	const handleOnInputNumberBlur = () => {
 		if ( isResetPendent.current ) {
 			handleOnReset();
@@ -289,6 +295,7 @@ function RangeControl(
 						min={ min }
 						onBlur={ handleOnInputNumberBlur }
 						onChange={ handleOnChange }
+						onValidate={ handleOnInputNumberValidate }
 						shiftStep={ shiftStep }
 						step={ step }
 						value={ inputSliderValue }

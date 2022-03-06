@@ -163,21 +163,14 @@ export function NumberControl(
 			state.error = null;
 		}
 
-		/**
-		 * Handles changes when isPressEnterToChange is false in order to skip
-		 * propagation of invalid values through onChange.
-		 */
-		if (
-			type === inputControlActionTypes.CHANGE &&
-			! state.isPressEnterToChange
-		) {
-			const { valid } = event.target.validity;
-			if ( ! valid ) {
-				state.error = 'invalid';
-			}
-		}
-
 		return stateReducer( state, action );
+	};
+
+	const onValidate = ( nextValue, event ) => {
+		props.onValidate?.( nextValue, event );
+		if ( ! event.target.validity.valid ) {
+			throw new Error( event.target.validationMessage );
+		}
 	};
 
 	return (
@@ -192,6 +185,7 @@ export function NumberControl(
 			label={ label }
 			max={ max }
 			min={ min }
+			onValidate={ onValidate }
 			ref={ ref }
 			required={ required }
 			step={ step }

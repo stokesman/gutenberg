@@ -61,10 +61,17 @@ function UnitControl(
 	// ensures it fallback to `undefined` in case a consumer of `UnitControl`
 	// still passes `null` as a `value`.
 	const nonNullValueProp = valueProp ?? undefined;
-	const units = useMemo(
-		() => getUnitsWithCurrentUnit( nonNullValueProp, unitProp, unitsProp ),
-		[ nonNullValueProp, unitProp, unitsProp ]
-	);
+	const [ units, pattern ] = useMemo( () => {
+		const unitList = getUnitsWithCurrentUnit(
+			nonNullValueProp,
+			unitProp,
+			unitsProp
+		);
+		const patrón = `^-?([0-9]+\\.?[0-9]*|\\.[0-9]+)($|${ unitList
+			.map( ( { value } ) => value )
+			.join( '|' ) })?$`;
+		return [ unitList, patrón ];
+	}, [ nonNullValueProp, unitProp, unitsProp ] );
 	const [ parsedQuantity, parsedUnit ] = getParsedQuantityAndUnit(
 		nonNullValueProp,
 		unitProp,
@@ -115,6 +122,14 @@ function UnitControl(
 		onChange( onChangeValue, changeProps );
 	};
 
+	const handleOnQuantityValidate = ( ...all: [ number | string | undefined, ChangeEvent< HTMLInputElement >] ) => {
+		const [ , event ] = all;
+		// console.log( 'valid? ', event.target.validity.valid );
+		if ( event.target.validity.valid ) {
+			mayUpdateUnit( event );
+		}
+	};
+
 	const handleOnUnitChange: UnitControlOnChangeCallback = (
 		nextUnitValue,
 		changeProps
@@ -149,8 +164,7 @@ function UnitControl(
 		);
 
 		refParsedQuantity.current = validParsedQuantity;
-
-		if ( isPressEnterToChange && validParsedUnit !== unit ) {
+		if ( validParsedUnit !== unit ) {
 			const data = Array.isArray( units )
 				? units.find( ( option ) => option.value === validParsedUnit )
 				: undefined;
@@ -190,9 +204,14 @@ function UnitControl(
 		 * isPressEnterToChange is true), if a parse has been performed
 		 * then use that result to update the state.
 		 */
-		if ( action.type === inputControlActionTypes.COMMIT ) {
+		if (
+			action.type === inputControlActionTypes.COMMIT ||
+			( action.type === inputControlActionTypes.CHANGE &&
+				! isPressEnterToChange )
+		) {
 			if ( refParsedQuantity.current !== undefined ) {
 				state.value = ( refParsedQuantity.current ?? '' ).toString();
+				// console.log( 'unit reduction', state.value );
 				refParsedQuantity.current = undefined;
 			}
 		}
@@ -227,7 +246,7 @@ function UnitControl(
 		<Root className="components-unit-control-wrapper" style={ style }>
 			<ValueInput
 				aria-label={ label }
-				type={ isPressEnterToChange ? 'text' : 'number' }
+				type="text"
 				{ ...omit( props, [ 'children' ] ) }
 				autoComplete={ autoComplete }
 				className={ classes }
@@ -238,6 +257,8 @@ function UnitControl(
 				onBlur={ handleOnBlur }
 				onKeyDown={ handleOnKeyDown }
 				onChange={ handleOnQuantityChange }
+				onValidate={ handleOnQuantityValidate }
+				pattern={ pattern }
 				ref={ forwardedRef }
 				size={ size }
 				suffix={ inputSuffix }

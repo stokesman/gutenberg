@@ -27,8 +27,11 @@ export default function LetterSpacingControl( {
 	onChange,
 	__unstableInputWidth = '60px',
 } ) {
+	const validSpacingUnits = useSetting( 'spacing.units' ).filter(
+		( unit ) => unit !== '%'
+	);
 	const units = useCustomUnits( {
-		availableUnits: useSetting( 'spacing.units' ) || [ 'px', 'em', 'rem' ],
+		availableUnits: validSpacingUnits || [ 'px', 'em', 'rem' ],
 		defaultValues: { px: 2, em: 0.2, rem: 0.2 },
 	} );
 	return (

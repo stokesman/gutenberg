@@ -18,7 +18,7 @@ import { useInstanceId } from '@wordpress/compose';
 import BaseControl from '../base-control';
 import Button from '../button';
 import Icon from '../icon';
-import { COLORS } from '../utils';
+import { COLORS, useCompositeFocus } from '../utils';
 import { floatClamp, useControlledRangeValue } from './utils';
 import InputRange from './input-range';
 import RangeRail from './rail';
@@ -52,9 +52,9 @@ function RangeControl(
 		marks = false,
 		max = 100,
 		min = 0,
-		onBlur = noop,
+		onBlur,
 		onChange = noop,
-		onFocus = noop,
+		onFocus,
 		onMouseMove = noop,
 		onMouseLeave = noop,
 		railColor,
@@ -85,8 +85,7 @@ function RangeControl(
 		withInputField = false;
 	}
 
-	const [ showTooltip, setShowTooltip ] = useState( showTooltipProp );
-	const [ isFocused, setIsFocused ] = useState( false );
+	const [ isRangeActive, setIsRangeActive ] = useState( false );
 
 	const inputRef = useRef();
 
@@ -97,9 +96,6 @@ function RangeControl(
 			ref( nodeRef );
 		}
 	};
-
-	const isCurrentlyFocused = inputRef.current?.matches( ':focus' );
-	const isThumbFocused = ! disabled && isFocused;
 
 	const isValueReset = value === null;
 	const currentValue = value !== undefined ? value : currentInput;
@@ -122,6 +118,7 @@ function RangeControl(
 	const id = useInstanceId( RangeControl, 'inspector-range-control' );
 	const describedBy = !! help ? `${ id }__help` : undefined;
 	const enableTooltip = showTooltipProp !== false && isFinite( value );
+	const showTooltip = enableTooltip && isRangeActive;
 
 	const handleOnRangeChange = ( event ) => {
 		const nextValue = parseFloat( event.target.value );
@@ -181,24 +178,19 @@ function RangeControl(
 		onChange( onChangeResetValue );
 	};
 
-	const handleShowTooltip = () => setShowTooltip( true );
-	const handleHideTooltip = () => setShowTooltip( false );
-
-	const handleOnBlur = ( event ) => {
-		onBlur( event );
-		setIsFocused( false );
-		handleHideTooltip();
+	const onBlurRange = () => {
+		setIsRangeActive( false );
 	};
 
-	const handleOnFocus = ( event ) => {
-		onFocus( event );
-		setIsFocused( true );
-		handleShowTooltip();
+	const onFocusRange = () => {
+		setIsRangeActive( true );
 	};
 
 	const offsetStyle = {
 		[ isRTL() ? 'right' : 'left' ]: fillValueOffset,
 	};
+
+	const rootRef = useRef();
 
 	return (
 		<BaseControl
@@ -208,7 +200,11 @@ function RangeControl(
 			id={ id }
 			help={ help }
 		>
-			<Root className="components-range-control__root">
+			<Root
+				className="components-range-control__root"
+				ref={ rootRef }
+				{ ...useCompositeFocus( { onBlur, onFocus }, rootRef ) }
+			>
 				{ beforeIcon && (
 					<BeforeIconWrapper>
 						<Icon icon={ beforeIcon } />
@@ -228,9 +224,9 @@ function RangeControl(
 						label={ label }
 						max={ max }
 						min={ min }
-						onBlur={ handleOnBlur }
+						onBlur={ onBlurRange }
 						onChange={ handleOnRangeChange }
-						onFocus={ handleOnFocus }
+						onFocus={ onFocusRange }
 						onMouseMove={ onMouseMove }
 						onMouseLeave={ onMouseLeave }
 						ref={ setRef }
@@ -257,7 +253,7 @@ function RangeControl(
 					<ThumbWrapper style={ offsetStyle } disabled={ disabled }>
 						<Thumb
 							aria-hidden={ true }
-							isFocused={ isThumbFocused }
+							isFocused={ isRangeActive }
 							disabled={ disabled }
 						/>
 					</ThumbWrapper>
@@ -267,7 +263,7 @@ function RangeControl(
 							inputRef={ inputRef }
 							tooltipPosition="bottom"
 							renderTooltipContent={ renderTooltipContent }
-							show={ isCurrentlyFocused || showTooltip }
+							show={ showTooltip }
 							style={ offsetStyle }
 							value={ value }
 						/>

@@ -224,7 +224,6 @@ function UnforwardedUnitControl(
 			size={ size }
 			unit={ unit }
 			units={ units }
-			onBlur={ onBlurProp }
 		/>
 	) : null;
 

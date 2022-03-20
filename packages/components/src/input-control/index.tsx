@@ -9,7 +9,7 @@ import type { ForwardedRef } from 'react';
  * WordPress dependencies
  */
 import { useInstanceId } from '@wordpress/compose';
-import { useState, forwardRef } from '@wordpress/element';
+import { useState, forwardRef, useRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -17,6 +17,7 @@ import { useState, forwardRef } from '@wordpress/element';
 import InputBase from './input-base';
 import InputField from './input-field';
 import type { InputControlProps } from './types';
+import { useCompositeFocus } from '../utils/hooks/';
 
 function useUniqueId( idProp?: string ) {
 	const instanceId = useInstanceId( InputControl );
@@ -36,7 +37,9 @@ export function InputControl(
 		isPressEnterToChange = false,
 		label,
 		labelPosition = 'top',
+		onBlur,
 		onChange = noop,
+		onFocus,
 		onValidate = noop,
 		onKeyDown = noop,
 		prefix,
@@ -47,6 +50,7 @@ export function InputControl(
 	}: InputControlProps,
 	ref: ForwardedRef< HTMLInputElement >
 ) {
+	const baseRef = useRef< HTMLDivElement >( null );
 	const [ isFocused, setIsFocused ] = useState( false );
 
 	const id = useUniqueId( idProp );
@@ -67,6 +71,8 @@ export function InputControl(
 			prefix={ prefix }
 			size={ size }
 			suffix={ suffix }
+			ref={ baseRef }
+			{ ...useCompositeFocus( { onBlur, onFocus }, baseRef ) }
 		>
 			<InputField
 				{ ...props }

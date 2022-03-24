@@ -6,7 +6,7 @@ import type { ChangeEvent, KeyboardEvent, FocusEvent } from 'react';
 /**
  * WordPress dependencies
  */
-import { useReducer } from '@wordpress/element';
+import { useReducer, useMemo } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -47,7 +47,7 @@ function mergeInitialState(
  * @param  composedStateReducers A custom reducer that can subscribe and modify state.
  * @return The reducer.
  */
-function inputControlStateReducer(
+function getBaseStateReducer(
 	composedStateReducers: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
@@ -146,7 +146,7 @@ export function useInputControlStateReducer(
 	initialState: Partial< InputState > = initialInputControlState
 ) {
 	const [ state, dispatch ] = useReducer< StateReducer >(
-		inputControlStateReducer( stateReducer ),
+		useMemo( () => getBaseStateReducer( stateReducer ), [ stateReducer ] ),
 		mergeInitialState( initialState )
 	);
 

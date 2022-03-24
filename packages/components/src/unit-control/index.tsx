@@ -14,7 +14,13 @@ import classnames from 'classnames';
 /**
  * WordPress dependencies
  */
-import { forwardRef, useMemo, useRef, useEffect } from '@wordpress/element';
+import {
+	forwardRef,
+	useCallback,
+	useMemo,
+	useRef,
+	useEffect,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { ENTER } from '@wordpress/keycodes';
 
@@ -37,7 +43,7 @@ import type { StateReducer } from '../input-control/reducer/state';
 
 function UnitControl(
 	{
-		__unstableStateReducer: stateReducer,
+		__unstableStateReducer: stateReducerProp,
 		autoComplete = 'off',
 		className,
 		disabled = false,
@@ -122,7 +128,9 @@ function UnitControl(
 		onChange( onChangeValue, changeProps );
 	};
 
-	const handleOnQuantityValidate = ( ...all: [ number | string | undefined, ChangeEvent< HTMLInputElement >] ) => {
+	const handleOnQuantityValidate = (
+		...all: [ number | string | undefined, ChangeEvent< HTMLInputElement > ]
+	) => {
 		const [ , event ] = all;
 		// console.log( 'valid? ', event.target.validity.valid );
 		if ( event.target.validity.valid ) {
@@ -198,26 +206,30 @@ function UnitControl(
 	 * @param  action Action triggering state change
 	 * @return The updated state to apply to InputControl
 	 */
-	const unitControlStateReducer: StateReducer = ( state, action ) => {
-		/*
-		 * On commits (when pressing ENTER and on blur if
-		 * isPressEnterToChange is true), if a parse has been performed
-		 * then use that result to update the state.
-		 */
-		if (
-			action.type === inputControlActionTypes.COMMIT ||
-			( action.type === inputControlActionTypes.CHANGE &&
-				! isPressEnterToChange )
-		) {
-			if ( refParsedQuantity.current !== undefined ) {
-				state.value = ( refParsedQuantity.current ?? '' ).toString();
-				// console.log( 'unit reduction', state.value );
-				refParsedQuantity.current = undefined;
+	const { current: stateReducer } = useRef< StateReducer >(
+		( state, action ) => {
+			/*
+			 * On commits (when pressing ENTER and on blur if
+			 * isPressEnterToChange is true), if a parse has been performed
+			 * then use that result to update the state.
+			 */
+			let nextState = state;
+			if (
+				action.type === inputControlActionTypes.COMMIT ||
+				( action.type === inputControlActionTypes.CHANGE &&
+					! isPressEnterToChange )
+			) {
+				if ( refParsedQuantity.current !== undefined ) {
+					nextState = {
+						...state,
+						value: ( refParsedQuantity.current ?? '' ).toString(),
+					};
+					refParsedQuantity.current = undefined;
+				}
 			}
+			return nextState;
 		}
-
-		return stateReducer?.( state, action ) ?? state;
-	};
+	);
 
 	const inputSuffix = ! disableUnits ? (
 		<UnitSelectControl
@@ -264,7 +276,15 @@ function UnitControl(
 				suffix={ inputSuffix }
 				value={ parsedQuantity ?? '' }
 				step={ step }
-				__unstableStateReducer={ unitControlStateReducer }
+				__unstableStateReducer={ useCallback< StateReducer >(
+					( state, action ) => {
+						const baseState = stateReducer( state, action );
+						return (
+							stateReducerProp?.( baseState, action ) ?? baseState
+						);
+					},
+					[ stateReducerProp ]
+				) }
 			/>
 		</Root>
 	);

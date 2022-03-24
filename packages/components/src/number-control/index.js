@@ -7,7 +7,7 @@ import classNames from 'classnames';
 /**
  * WordPress dependencies
  */
-import { forwardRef } from '@wordpress/element';
+import { forwardRef, useCallback } from '@wordpress/element';
 import { isRTL } from '@wordpress/i18n';
 
 /**
@@ -20,7 +20,7 @@ import { isValueEmpty } from '../utils/values';
 
 export function NumberControl(
 	{
-		__unstableStateReducer: stateReducer = ( state ) => state,
+		__unstableStateReducer: stateReducerProp,
 		className,
 		dragDirection = 'n',
 		hideHTMLArrows = false,
@@ -38,16 +38,6 @@ export function NumberControl(
 	},
 	ref
 ) {
-	const isStepAny = step === 'any';
-	const baseStep = isStepAny ? 1 : parseFloat( step );
-	const baseValue = roundClamp( 0, min, max, baseStep );
-	const constrainValue = ( value, stepOverride ) => {
-		// When step is "any" clamp the value, otherwise round and clamp it.
-		return isStepAny
-			? Math.min( max, Math.max( min, value ) )
-			: roundClamp( value, min, max, stepOverride ?? baseStep );
-	};
-
 	const autoComplete = typeProp === 'number' ? 'off' : null;
 	const classes = classNames( 'components-number-control', className );
 
@@ -60,10 +50,73 @@ export function NumberControl(
 	 * @param {Object} action Action triggering state change
 	 * @return {Object} The updated state to apply to InputControl
 	 */
-	const numberControlStateReducer = ( state, action ) => {
+	const stateReducer = useNumberControlStateReducer( {
+		dragDirection,
+		isDragEnabled,
+		isShiftStepEnabled,
+		min,
+		max,
+		required,
+		shiftStep,
+		step,
+	} );
+
+	return (
+		<Input
+			autoComplete={ autoComplete }
+			inputMode="numeric"
+			{ ...props }
+			className={ classes }
+			dragDirection={ dragDirection }
+			hideHTMLArrows={ hideHTMLArrows }
+			isDragEnabled={ isDragEnabled }
+			label={ label }
+			max={ max }
+			min={ min }
+			ref={ ref }
+			required={ required }
+			step={ step }
+			type={ typeProp }
+			value={ valueProp }
+			__unstableStateReducer={ useCallback(
+				( state, action ) => {
+					const baseState = stateReducer( state, action );
+					return stateReducerProp?.( baseState, action ) ?? baseState;
+				},
+				[ stateReducerProp ]
+			) }
+		/>
+	);
+}
+
+export default forwardRef( NumberControl );
+
+const useNumberControlStateReducer = ( props ) => {
+	const {
+		dragDirection,
+		isDragEnabled,
+		isShiftStepEnabled,
+		min,
+		max,
+		required,
+		shiftStep,
+		step,
+	} = props;
+	const isStepAny = step === 'any';
+	const baseStep = isStepAny ? 1 : parseFloat( step );
+	const baseValue = roundClamp( 0, min, max, baseStep );
+	const constrainValue = ( value, stepOverride ) => {
+		// When step is "any" clamp the value, otherwise round and clamp it.
+		return isStepAny
+			? Math.min( max, Math.max( min, value ) )
+			: roundClamp( value, min, max, stepOverride ?? baseStep );
+	};
+	return useCallback( ( state, action ) => {
+		const nextState = { ...state };
+
 		const { type, payload } = action;
 		const event = payload?.event;
-		const currentValue = state.value;
+		const currentValue = nextState.value;
 
 		/**
 		 * Handles custom UP and DOWN Keyboard events
@@ -93,7 +146,7 @@ export function NumberControl(
 				nextValue = subtract( nextValue, incrementalValue );
 			}
 
-			state.value = constrainValue(
+			nextState.value = constrainValue(
 				nextValue,
 				enableShift ? incrementalValue : null
 			);
@@ -138,7 +191,7 @@ export function NumberControl(
 				delta = Math.ceil( Math.abs( delta ) ) * Math.sign( delta );
 				const distance = delta * modifier * directionModifier;
 
-				state.value = constrainValue(
+				nextState.value = constrainValue(
 					add( currentValue, distance ),
 					enableShift ? modifier : null
 				);
@@ -146,54 +199,19 @@ export function NumberControl(
 		}
 
 		/**
-		 * Handles ENTER key press or commits. The latter originates from blur
-		 * events or ENTER key presses when isPressEnterToChange is true).
+		 * Handles commit (ENTER key press or blur)
 		 */
 		if (
-			( type === inputControlActionTypes.PRESS_ENTER &&
-				! state.isPressEnterToChange ) ||
+			type === inputControlActionTypes.PRESS_ENTER ||
 			type === inputControlActionTypes.COMMIT
 		) {
 			const applyEmptyValue = required === false && currentValue === '';
 
-			state.value = applyEmptyValue
+			nextState.value = applyEmptyValue
 				? currentValue
 				: constrainValue( currentValue );
-
-			state.error = null;
 		}
 
-		return stateReducer( state, action );
-	};
-
-	const onValidate = ( nextValue, event ) => {
-		props.onValidate?.( nextValue, event );
-		if ( ! event.target.validity.valid ) {
-			throw new Error( event.target.validationMessage );
-		}
-	};
-
-	return (
-		<Input
-			autoComplete={ autoComplete }
-			inputMode="numeric"
-			{ ...props }
-			className={ classes }
-			dragDirection={ dragDirection }
-			hideHTMLArrows={ hideHTMLArrows }
-			isDragEnabled={ isDragEnabled }
-			label={ label }
-			max={ max }
-			min={ min }
-			onValidate={ onValidate }
-			ref={ ref }
-			required={ required }
-			step={ step }
-			type={ typeProp }
-			value={ valueProp }
-			__unstableStateReducer={ numberControlStateReducer }
-		/>
-	);
-}
-
-export default forwardRef( NumberControl );
+		return nextState;
+	}, Object.keys( props ) );
+};

@@ -2,12 +2,16 @@
  * WordPress dependencies
  */
 import { __, _x } from '@wordpress/i18n';
-import { Platform } from '@wordpress/element';
+import { Platform, useRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
 import type { WPUnitControlUnit } from './types';
+/**
+ * External dependencies
+ */
+import type { MutableRefObject } from 'react';
 
 const isWeb = Platform.OS === 'web';
 
@@ -354,3 +358,33 @@ export function getUnitsWithCurrentUnit(
 
 	return unitsToReturn;
 }
+
+type Luller = ( callback?: () => any, timeout?: number ) => void;
+/**
+ * Provides a basic trailing execution debouncer with a boolean indicator.
+ *
+ * @param {number} baseTimeout Default lull duration.
+ * @return A function to set a callback to lull and a ref boolean indicating whether a callback is lulled.
+ */
+export const useLull = (
+	baseTimeout: number
+): [ Luller, MutableRefObject< boolean > ] => {
+	const isLulled = useRef< boolean >( false );
+	const timerId = useRef< number | undefined >();
+	const lulled = useRef< () => void >();
+	const duration = useRef< number >( baseTimeout );
+	const lull = useRef< Luller >( ( callback, timeout = duration.current ) => {
+		if ( timerId.current || ! callback ) {
+			clearTimeout( timerId.current );
+		}
+		timerId.current = window.setTimeout( () => {
+			lulled.current?.();
+			timerId.current = undefined;
+			isLulled.current = false;
+		}, duration.current );
+		lulled.current = callback;
+		if ( timeout !== duration.current ) duration.current = timeout;
+		isLulled.current = !! callback;
+	} );
+	return [ lull.current, isLulled ];
+};

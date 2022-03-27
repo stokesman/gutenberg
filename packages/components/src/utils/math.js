@@ -11,7 +11,7 @@ import { clamp } from 'lodash';
  * @return {number} The parsed number value.
  */
 export function getNumber( value ) {
-	const number = Number( value );
+	const number = parseFloat( `${ value }` );
 
 	return isNaN( number ) ? 0 : number;
 }

@@ -6,8 +6,6 @@ import type {
 	KeyboardEvent,
 	ForwardedRef,
 	SyntheticEvent,
-	ChangeEvent,
-	PointerEvent,
 } from 'react';
 import { omit } from 'lodash';
 import classnames from 'classnames';
@@ -16,8 +14,15 @@ import classnames from 'classnames';
  * WordPress dependencies
  */
 import deprecated from '@wordpress/deprecated';
-import { forwardRef, useMemo, useRef, useEffect } from '@wordpress/element';
+import {
+	forwardRef,
+	useMemo,
+	useRef,
+	useEffect,
+	useCallback,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { focus } from '@wordpress/dom';
 
 /**
  * Internal dependencies
@@ -31,10 +36,12 @@ import {
 	getParsedQuantityAndUnit,
 	getUnitsWithCurrentUnit,
 	getValidParsedQuantityAndUnit,
+	useLull,
 } from './utils';
 import { useControlledState } from '../utils/hooks';
 import type { UnitControlProps, UnitControlOnChangeCallback } from './types';
 import type { StateReducer } from '../input-control/reducer/state';
+import type { InputChangeCallback } from '../input-control/types';
 
 function UnforwardedUnitControl(
 	unitControlProps: WordPressComponentProps<
@@ -77,10 +84,17 @@ function UnforwardedUnitControl(
 	// ensures it fallback to `undefined` in case a consumer of `UnitControl`
 	// still passes `null` as a `value`.
 	const nonNullValueProp = valueProp ?? undefined;
-	const units = useMemo(
-		() => getUnitsWithCurrentUnit( nonNullValueProp, unitProp, unitsProp ),
-		[ nonNullValueProp, unitProp, unitsProp ]
-	);
+	const [ units, pattern ] = useMemo( () => {
+		const unitList = getUnitsWithCurrentUnit(
+			nonNullValueProp,
+			unitProp,
+			unitsProp
+		);
+		const patrón = `^-?([0-9]+\\.?[0-9]*|\\.[0-9]+)($|${ unitList
+			.map( ( { value } ) => value )
+			.join( '|' ) })?$`;
+		return [ unitList, patrón ];
+	}, [ nonNullValueProp, unitProp, unitsProp ] );
 	const [ parsedQuantity, parsedUnit ] = getParsedQuantityAndUnit(
 		nonNullValueProp,
 		unitProp,
@@ -101,18 +115,29 @@ function UnforwardedUnitControl(
 		}
 	}, [ parsedUnit ] );
 
+	const [ lullMayUpdateUnit, isMayUpdateUnitLulled ] = useLull( 233 );
+
 	// Stores parsed value for hand-off in state reducer.
 	const refParsedQuantity = useRef< number | undefined >( undefined );
 
 	const classes = classnames( 'components-unit-control', className );
 
-	const handleOnQuantityChange = (
-		nextQuantityValue: number | string | undefined,
-		changeProps: {
-			event:
-				| ChangeEvent< HTMLInputElement >
-				| PointerEvent< HTMLInputElement >;
-		}
+	let onInput;
+	if ( ! isPressEnterToChange ) {
+		onInput = ( event: SyntheticEvent< HTMLInputElement > ) => {
+			unitControlProps.onInput?.( event );
+			const { value } = event.target as HTMLInputElement;
+			lullMayUpdateUnit(
+				/[^-\d.,]/.test( value )
+					? () => mayUpdateUnit( event )
+					: undefined
+			);
+		};
+	}
+
+	const handleOnQuantityChange: InputChangeCallback = (
+		nextQuantityValue,
+		changeProps
 	) => {
 		if (
 			nextQuantityValue === '' ||
@@ -156,26 +181,23 @@ function UnforwardedUnitControl(
 	};
 
 	const mayUpdateUnit = ( event: SyntheticEvent< HTMLInputElement > ) => {
-		if ( ! isNaN( Number( event.currentTarget.value ) ) ) {
+		const input = event.target as HTMLInputElement;
+		const { value } = input;
+		if ( ! isNaN( Number( value ) ) ) {
 			refParsedQuantity.current = undefined;
 			return;
 		}
 		const [
 			validParsedQuantity,
 			validParsedUnit,
-		] = getValidParsedQuantityAndUnit(
-			event.currentTarget.value,
-			units,
-			parsedQuantity,
-			unit
-		);
+		] = getValidParsedQuantityAndUnit( value, units, parsedQuantity, unit );
 
 		refParsedQuantity.current = validParsedQuantity;
 
-		if ( isPressEnterToChange && validParsedUnit !== unit ) {
-			const data = Array.isArray( units )
-				? units.find( ( option ) => option.value === validParsedUnit )
-				: undefined;
+		if ( validParsedUnit !== unit ) {
+			const data = units.find(
+				( option ) => option.value === validParsedUnit
+			);
 			const changeProps = { event, data };
 
 			onChangeProp?.(
@@ -185,6 +207,8 @@ function UnforwardedUnitControl(
 			onUnitChange?.( validParsedUnit, changeProps );
 
 			setUnit( validParsedUnit );
+			if ( isPressEnterToChange ) return;
+			( focus.tabbable.findNext( input ) as HTMLSelectElement ).focus();
 		}
 	};
 
@@ -209,33 +233,34 @@ function UnforwardedUnitControl(
 	 * @param  action Action triggering state change
 	 * @return The updated state to apply to InputControl
 	 */
-	const unitControlStateReducer: StateReducer = ( state, action ) => {
-		const nextState = { ...state };
+	const stateReducer = useCallback< StateReducer >(
+		( state, action ) => {
+			const nextState = { ...state };
 
-		/*
-		 * On commits (when pressing ENTER and on blur if
-		 * isPressEnterToChange is true), if a parse has been performed
-		 * then use that result to update the state.
-		 */
-		if ( action.type === inputControlActionTypes.COMMIT ) {
-			if ( refParsedQuantity.current !== undefined ) {
-				nextState.value = (
-					refParsedQuantity.current ?? ''
-				).toString();
-				refParsedQuantity.current = undefined;
+			/*
+			 * On commits (when pressing ENTER and on blur if
+			 * isPressEnterToChange is true), if a parse has been performed
+			 * then use that result to update the state.
+			 */
+			if ( action.type === inputControlActionTypes.COMMIT ) {
+				if ( refParsedQuantity.current !== undefined ) {
+					nextState.value = (
+						refParsedQuantity.current ?? ''
+					).toString();
+					refParsedQuantity.current = undefined;
+				}
 			}
-		}
+			if (
+				action.type === inputControlActionTypes.CHANGE &&
+				! state.isPressEnterToChange
+			) {
+				nextState.isDirty = isMayUpdateUnitLulled.current;
+			}
 
-		return nextState;
-	};
-
-	let stateReducer: StateReducer = unitControlStateReducer;
-	if ( stateReducerProp ) {
-		stateReducer = ( state, action ) => {
-			const baseState = unitControlStateReducer( state, action );
-			return stateReducerProp( baseState, action );
-		};
-	}
+			return stateReducerProp?.( nextState, action ) ?? nextState;
+		},
+		[ stateReducerProp ]
+	);
 
 	const inputSuffix = ! disableUnits ? (
 		<UnitSelectControl
@@ -265,7 +290,7 @@ function UnforwardedUnitControl(
 		<Root className="components-unit-control-wrapper" style={ style }>
 			<ValueInput
 				aria-label={ label }
-				type={ isPressEnterToChange ? 'text' : 'number' }
+				type="text"
 				{ ...omit( props, [ 'children' ] ) }
 				autoComplete={ autoComplete }
 				className={ classes }
@@ -274,8 +299,10 @@ function UnforwardedUnitControl(
 				isPressEnterToChange={ isPressEnterToChange }
 				label={ label }
 				onBlur={ handleOnBlur }
+				onInput={ onInput }
 				onKeyDown={ handleOnKeyDown }
 				onChange={ handleOnQuantityChange }
+				pattern={ pattern }
 				ref={ forwardedRef }
 				size={ size }
 				suffix={ inputSuffix }

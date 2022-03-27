@@ -109,7 +109,10 @@ function InputField(
 		 * If isPressEnterToChange is set, this commits the value to
 		 * the onChange callback.
 		 */
-		if ( isDirty || ! event.target.validity.valid ) {
+		if (
+			( isPressEnterToChange && isDirty ) ||
+			! event.target.validity.valid
+		) {
 			wasDirtyOnBlur.current = true;
 			handleOnCommit( event );
 		}

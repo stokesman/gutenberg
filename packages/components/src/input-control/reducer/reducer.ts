@@ -6,7 +6,7 @@ import type { SyntheticEvent } from 'react';
 /**
  * WordPress dependencies
  */
-import { useReducer } from '@wordpress/element';
+import { useMemo, useReducer } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -47,7 +47,7 @@ function mergeInitialState(
  * @param  composedStateReducers A custom reducer that can subscribe and modify state.
  * @return The reducer.
  */
-function inputControlStateReducer(
+function getBaseStateReducer(
 	composedStateReducers: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
@@ -140,7 +140,7 @@ export function useInputControlStateReducer(
 	initialState: Partial< InputState > = initialInputControlState
 ) {
 	const [ state, dispatch ] = useReducer< StateReducer >(
-		inputControlStateReducer( stateReducer ),
+		useMemo( () => getBaseStateReducer( stateReducer ), [ stateReducer ] ),
 		mergeInitialState( initialState )
 	);
 
@@ -188,8 +188,10 @@ export function useInputControlStateReducer(
 	 * Actions for the reducer
 	 */
 	const change = createChangeEvent( actions.CHANGE );
-	const invalidate = ( error: unknown, event: SyntheticEvent ) =>
-		dispatch( { type: actions.INVALIDATE, payload: { error, event } } );
+	const invalidate = (
+		error: unknown,
+		event: SyntheticEvent< HTMLInputElement >
+	) => dispatch( { type: actions.INVALIDATE, payload: { error, event } } );
 	const reset = createChangeEvent( actions.RESET );
 	const commit = createChangeEvent( actions.COMMIT );
 

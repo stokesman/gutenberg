@@ -7,7 +7,7 @@ import classNames from 'classnames';
 /**
  * WordPress dependencies
  */
-import { forwardRef } from '@wordpress/element';
+import { forwardRef, useCallback } from '@wordpress/element';
 import { isRTL } from '@wordpress/i18n';
 
 /**
@@ -38,16 +38,6 @@ export function NumberControl(
 	},
 	ref
 ) {
-	const isStepAny = step === 'any';
-	const baseStep = isStepAny ? 1 : parseFloat( step );
-	const baseValue = roundClamp( 0, min, max, baseStep );
-	const constrainValue = ( value, stepOverride ) => {
-		// When step is "any" clamp the value, otherwise round and clamp it.
-		return isStepAny
-			? Math.min( max, Math.max( min, value ) )
-			: roundClamp( value, min, max, stepOverride ?? baseStep );
-	};
-
 	const autoComplete = typeProp === 'number' ? 'off' : null;
 	const classes = classNames( 'components-number-control', className );
 
@@ -60,7 +50,27 @@ export function NumberControl(
 	 * @param {Object} action Action triggering state change
 	 * @return {Object} The updated state to apply to InputControl
 	 */
-	const numberControlStateReducer = ( state, action ) => {
+	const stateReducerDeps = {
+		dragDirection,
+		isDragEnabled,
+		isShiftStepEnabled,
+		min,
+		max,
+		required,
+		shiftStep,
+		stateReducerProp,
+		step,
+	};
+	const stateReducer = useCallback( ( state, action ) => {
+		const isStepAny = step === 'any';
+		const baseStep = isStepAny ? 1 : parseFloat( step );
+		const baseValue = roundClamp( 0, min, max, baseStep );
+		const constrainValue = ( value, stepOverride ) => {
+			// When step is "any" clamp the value, otherwise round and clamp it.
+			return isStepAny
+				? Math.min( max, Math.max( min, value ) )
+				: roundClamp( value, min, max, stepOverride ?? baseStep );
+		};
 		const nextState = { ...state };
 
 		const { type, payload } = action;
@@ -161,8 +171,8 @@ export function NumberControl(
 				: constrainValue( currentValue );
 		}
 
-		return nextState;
-	};
+		return stateReducerProp?.( nextState, action ) ?? nextState;
+	}, Object.keys( stateReducerDeps ) );
 
 	return (
 		<Input
@@ -181,10 +191,7 @@ export function NumberControl(
 			step={ step }
 			type={ typeProp }
 			value={ valueProp }
-			__unstableStateReducer={ ( state, action ) => {
-				const baseState = numberControlStateReducer( state, action );
-				return stateReducerProp?.( baseState, action ) ?? baseState;
-			} }
+			__unstableStateReducer={ stateReducer }
 		/>
 	);
 }

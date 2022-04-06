@@ -426,7 +426,7 @@ describe( 'UnitControl', () => {
 		it( 'should update unit value when a new raw value is passed', async () => {
 			const { user } = render( <ControlledSyncUnits /> );
 
-			const [ inputA, inputB ] = screen.getAllByRole( 'spinbutton' );
+			const [ inputA, inputB ] = screen.getAllByRole( 'textbox' );
 			const [ selectA, selectB ] = screen.getAllByRole( 'combobox' );
 
 			const [ remOptionA ] = screen.getAllByRole( 'option', {
@@ -524,7 +524,7 @@ describe( 'UnitControl', () => {
 			await user.type( input, '55 em' );
 			user.keyboard( '{Enter}' );
 
-			expect( state ).toBe( '55em' );
+			await waitFor( () => expect( state ).toBe( '55em' ) );
 		} );
 
 		it( 'should parse PX unit from input', async () => {
@@ -541,7 +541,7 @@ describe( 'UnitControl', () => {
 			await user.type( input, '61   PX' );
 			user.keyboard( '{Enter}' );
 
-			expect( state ).toBe( '61px' );
+			await waitFor( () => expect( state ).toBe( '61px' ) );
 		} );
 
 		it( 'should parse EM unit from input', async () => {
@@ -558,7 +558,7 @@ describe( 'UnitControl', () => {
 			await user.type( input, '55 em' );
 			user.keyboard( '{Enter}' );
 
-			expect( state ).toBe( '55em' );
+			await waitFor( () => expect( state ).toBe( '55em' ) );
 		} );
 
 		it( 'should parse % unit from input', async () => {
@@ -575,7 +575,7 @@ describe( 'UnitControl', () => {
 			await user.type( input, '-10  %' );
 			user.keyboard( '{Enter}' );
 
-			expect( state ).toBe( '-10%' );
+			await waitFor( () => expect( state ).toBe( '-10%' ) );
 		} );
 
 		it( 'should parse REM unit from input', async () => {
@@ -592,7 +592,7 @@ describe( 'UnitControl', () => {
 			await user.type( input, '123       rEm  ' );
 			user.keyboard( '{Enter}' );
 
-			expect( state ).toBe( '123rem' );
+			await waitFor( () => expect( state ).toBe( '123rem' ) );
 		} );
 
 		it( 'should update unit after initial render and with new unit prop', async () => {

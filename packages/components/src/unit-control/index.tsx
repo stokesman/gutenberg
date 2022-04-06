@@ -23,7 +23,7 @@ import { __ } from '@wordpress/i18n';
  * Internal dependencies
  */
 import type { WordPressComponentProps } from '../ui/context';
-import * as inputControlActionTypes from '../input-control/reducer/actions';
+import { CHANGE, COMMIT } from '../input-control/reducer/actions';
 import { Root, ValueInput } from './styles/unit-control-styles';
 import UnitSelectControl from './unit-select-control';
 import {
@@ -101,8 +101,14 @@ function UnforwardedUnitControl(
 		}
 	}, [ parsedUnit ] );
 
-	// Stores parsed value for hand-off in state reducer.
+	// Stores parsed quantity from the textbox for hand-off in state reducer.
 	const refParsedQuantity = useRef< number | undefined >( undefined );
+	// Clears the stored quantity after the update.
+	useEffect( () => {
+		if ( refParsedQuantity.current ) {
+			refParsedQuantity.current = undefined;
+		}
+	} );
 
 	const classes = classnames( 'components-unit-control', className );
 
@@ -156,10 +162,6 @@ function UnforwardedUnitControl(
 	};
 
 	const mayUpdateUnit = ( event: SyntheticEvent< HTMLInputElement > ) => {
-		if ( ! isNaN( Number( event.currentTarget.value ) ) ) {
-			refParsedQuantity.current = undefined;
-			return;
-		}
 		const [
 			validParsedQuantity,
 			validParsedUnit,
@@ -167,26 +169,30 @@ function UnforwardedUnitControl(
 			event.currentTarget.value,
 			units,
 			parsedQuantity,
-			unit
+			'not a unit'
 		);
 
-		refParsedQuantity.current = validParsedQuantity;
+		if ( validParsedUnit !== 'not a unit' ) {
+			refParsedQuantity.current = validParsedQuantity;
 
-		if ( isPressEnterToChange && validParsedUnit !== unit ) {
 			const data = Array.isArray( units )
 				? units.find( ( option ) => option.value === validParsedUnit )
 				: undefined;
-			const changeProps = { event, data };
 
-			onChangeProp?.(
-				`${ validParsedQuantity ?? '' }${ validParsedUnit }`,
-				changeProps
-			);
-			onUnitChange?.( validParsedUnit, changeProps );
-
+			onUnitChange?.( validParsedUnit, { event, data } );
 			setUnit( validParsedUnit );
+			return;
 		}
+		refParsedQuantity.current = undefined;
 	};
+
+	let onInput;
+	if ( ! isPressEnterToChange ) {
+		onInput = ( event: SyntheticEvent< HTMLInputElement > ) => {
+			mayUpdateUnit( event );
+			props.onInput?.( event );
+		};
+	}
 
 	const handleOnBlur: FocusEventHandler< HTMLInputElement > = ( event ) => {
 		mayUpdateUnit( event );
@@ -212,17 +218,14 @@ function UnforwardedUnitControl(
 	const unitControlStateReducer: StateReducer = ( state, action ) => {
 		const nextState = { ...state };
 
-		/*
-		 * On commits (when pressing ENTER and on blur if
-		 * isPressEnterToChange is true), if a parse has been performed
-		 * then use that result to update the state.
-		 */
-		if ( action.type === inputControlActionTypes.COMMIT ) {
+		if (
+			( ! state.isPressEnterToChange && action.type === CHANGE ) ||
+			( state.isPressEnterToChange && action.type === COMMIT )
+		) {
+			// If the value from the textbox has been parsed, use the resultant
+			// quantity as the next value to remove the unit from the textbox.
 			if ( refParsedQuantity.current !== undefined ) {
-				nextState.value = (
-					refParsedQuantity.current ?? ''
-				).toString();
-				refParsedQuantity.current = undefined;
+				nextState.value = `${ refParsedQuantity.current ?? '' }`;
 			}
 		}
 
@@ -265,7 +268,7 @@ function UnforwardedUnitControl(
 		<Root className="components-unit-control-wrapper" style={ style }>
 			<ValueInput
 				aria-label={ label }
-				type={ isPressEnterToChange ? 'text' : 'number' }
+				type={ 'text' }
 				{ ...omit( props, [ 'children' ] ) }
 				autoComplete={ autoComplete }
 				className={ classes }
@@ -274,6 +277,7 @@ function UnforwardedUnitControl(
 				isPressEnterToChange={ isPressEnterToChange }
 				label={ label }
 				onBlur={ handleOnBlur }
+				onInput={ onInput }
 				onKeyDown={ handleOnKeyDown }
 				onChange={ handleOnQuantityChange }
 				ref={ forwardedRef }

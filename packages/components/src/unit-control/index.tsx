@@ -31,6 +31,7 @@ import {
 	getParsedQuantityAndUnit,
 	getUnitsWithCurrentUnit,
 	getValidParsedQuantityAndUnit,
+	parseQuantityAndUnitFromRawValue,
 } from './utils';
 import { useControlledState } from '../utils/hooks';
 import type { UnitControlProps, UnitControlOnChangeCallback } from './types';
@@ -165,15 +166,13 @@ function UnforwardedUnitControl(
 		const [
 			validParsedQuantity,
 			validParsedUnit,
-		] = getValidParsedQuantityAndUnit(
+		] = parseQuantityAndUnitFromRawValue(
 			event.currentTarget.value,
-			units,
-			parsedQuantity,
-			'not a unit'
+			units
 		);
 
-		if ( validParsedUnit !== 'not a unit' ) {
-			refParsedQuantity.current = validParsedQuantity;
+		if ( validParsedUnit ) {
+			refParsedQuantity.current = validParsedQuantity ?? parsedQuantity;
 
 			const data = Array.isArray( units )
 				? units.find( ( option ) => option.value === validParsedUnit )
@@ -217,7 +216,6 @@ function UnforwardedUnitControl(
 	 */
 	const unitControlStateReducer: StateReducer = ( state, action ) => {
 		const nextState = { ...state };
-
 		if (
 			( ! state.isPressEnterToChange && action.type === CHANGE ) ||
 			( state.isPressEnterToChange && action.type === COMMIT )
@@ -226,9 +224,13 @@ function UnforwardedUnitControl(
 			// quantity as the next value to remove the unit from the textbox.
 			if ( refParsedQuantity.current !== undefined ) {
 				nextState.value = `${ refParsedQuantity.current ?? '' }`;
+				// This property is to ensure InputControl’s update effect will
+				// run and call onChange. Without it the hook does not run for
+				// single character units (e.g. %) because removal of the last
+				// character makes it equal to the previous value.
+				nextState.ensureUpdate = true;
 			}
 		}
-
 		return nextState;
 	};
 

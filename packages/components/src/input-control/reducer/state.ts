@@ -10,6 +10,7 @@ import type { InputAction } from './actions';
 
 export interface InputState {
 	_event: Event | {};
+	ensureUpdate: boolean;
 	error: unknown;
 	initialValue?: string;
 	isDirty: boolean;
@@ -25,6 +26,7 @@ export const initialStateReducer: StateReducer = ( state: InputState ) => state;
 
 export const initialInputControlState: InputState = {
 	_event: {},
+	ensureUpdate: false,
 	error: null,
 	initialValue: '',
 	isDirty: false,

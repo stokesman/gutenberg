@@ -73,7 +73,7 @@ function InputField(
 		isPressEnterToChange,
 	} );
 
-	const { _event, value, isDragging, isDirty } = state;
+	const { _event, value, isDragging, isDirty, ensureUpdate } = state;
 	const wasDirtyOnBlur = useRef( false );
 
 	const dragCursor = useDragCursor( isDragging, dragDirection );
@@ -86,7 +86,7 @@ function InputField(
 	 * [1] value is only made dirty if isPressEnterToChange is true
 	 */
 	useUpdateEffect( () => {
-		if ( valueProp === value ) {
+		if ( valueProp === value && ! ensureUpdate ) {
 			return;
 		}
 		if ( ! isFocused && ! wasDirtyOnBlur.current ) {
@@ -99,7 +99,7 @@ function InputField(
 			} );
 			wasDirtyOnBlur.current = false;
 		}
-	}, [ value, isDirty, isFocused, valueProp ] );
+	}, [ value, isDirty, isFocused, valueProp, ensureUpdate ] );
 
 	const handleOnBlur = ( event: FocusEvent< HTMLInputElement > ) => {
 		onBlur( event );

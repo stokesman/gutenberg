@@ -6,7 +6,7 @@ import type { SyntheticEvent } from 'react';
 /**
  * WordPress dependencies
  */
-import { useReducer } from '@wordpress/element';
+import { useReducer, useEffect } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -51,6 +51,13 @@ function inputControlStateReducer(
 	composedStateReducers: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
+		// Settle is an action unavailable to composed state reducers. It
+		// mutates state to bail out of renders.
+		if ( action.type === actions.SETTLE ) {
+			Object.assign( state, action.payload );
+			return state;
+		}
+
 		const nextState = { ...state };
 
 		switch ( action.type ) {
@@ -143,6 +150,15 @@ export function useInputControlStateReducer(
 		inputControlStateReducer( stateReducer ),
 		mergeInitialState( initialState )
 	);
+
+	useEffect( () => {
+		if ( state.ensureUpdate ) {
+			dispatch( {
+				type: actions.SETTLE,
+				payload: { ensureUpdate: false },
+			} );
+		}
+	}, [ state.ensureUpdate ] );
 
 	const createChangeEvent = ( type: actions.ChangeEventAction[ 'type' ] ) => (
 		nextValue: actions.ChangeEventAction[ 'payload' ][ 'value' ],

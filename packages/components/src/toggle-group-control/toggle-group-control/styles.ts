@@ -43,8 +43,9 @@ export const AnimatedBackdrop = styled( motion.div )`
 	border-radius: ${ CONFIG.controlBorderRadius };
 	box-shadow: none;
 	left: 0;
+	right: 0;
 	position: absolute;
-	top: 2px;
-	bottom: 2px;
+	top: 0;
+	bottom: 0;
 	z-index: 1;
 `;

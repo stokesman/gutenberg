@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { ReactNode, ReactText } from 'react';
+import type { ReactElement, ReactNode, ReactText } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import type { RadioStateReturn } from 'reakit';
 
@@ -9,12 +9,10 @@ import type { RadioStateReturn } from 'reakit';
  * Internal dependencies
  */
 import type { FormElementProps } from '../utils/types';
-import type { ToggleGroupControlOption } from './toggle-group-control-option';
-import type { ToggleGroupControlOptionIcon } from './toggle-group-control-option-icon';
 
-type AllowedToggleGroupControlOptionChild =
-	| typeof ToggleGroupControlOption
-	| typeof ToggleGroupControlOptionIcon;
+export type AllowedToggleGroupControlOptionChild =
+	| ReactElement< ToggleGroupControlOptionProps >
+	| ReactElement< ToggleGroupControlOptionIconProps >;
 
 export type ToggleGroupControlOptionBaseProps = {
 	children: ReactNode;
@@ -121,11 +119,6 @@ export type ToggleGroupControlContextProps = RadioStateReturn & {
 	 * @default false
 	 */
 	isBlock?: boolean;
-};
-
-export type ToggleGroupControlBackdropProps = {
-	containerSizes: {
-		width: number | null;
-		height: number | null;
-	};
+	isMount?: boolean;
+	staleState: RadioStateReturn[ 'state' ];
 };

@@ -26,6 +26,7 @@ import { useToggleGroupControlContext } from '../context';
 import * as styles from './styles';
 import { useCx } from '../../utils/hooks';
 import Tooltip from '../../tooltip';
+import ToggleGroupControlBackdrop from '../toggle-group-control/toggle-group-control-backdrop';
 
 const { ButtonContentView, LabelView } = styles;
 
@@ -63,6 +64,8 @@ function ToggleGroupControlOptionBase(
 		value,
 		children,
 		showTooltip = false,
+		isMount,
+		staleState,
 		...radioProps
 	} = {
 		...toggleGroupControlContext,
@@ -70,6 +73,7 @@ function ToggleGroupControlOptionBase(
 	};
 
 	const isActive = radioProps.state === value;
+	const wasActive = staleState === value;
 	const cx = useCx();
 	const labelViewClasses = cx( isBlock && styles.labelBlock );
 	const classes = cx(
@@ -79,12 +83,8 @@ function ToggleGroupControlOptionBase(
 	);
 
 	return (
-		<LabelView
-			className={ labelViewClasses }
-			data-active={ isActive }
-			// Necessary for the ToggleGroupControlBackdrop component to render properly
-			data-toggle-group-control-option-wrapper="true"
-		>
+		<LabelView className={ labelViewClasses }>
+			{ isActive || wasActive ? <ToggleGroupControlBackdrop /> : null }
 			<WithToolTip
 				showTooltip={ showTooltip }
 				text={ radioProps[ 'aria-label' ] }

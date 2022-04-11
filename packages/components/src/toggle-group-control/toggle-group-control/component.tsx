@@ -4,13 +4,14 @@
 import type { ForwardedRef } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { RadioGroup, useRadioState } from 'reakit';
-import useResizeAware from 'react-resize-aware';
+// eslint-disable-next-line no-restricted-imports
+import { LayoutGroup } from 'framer-motion';
 
 /**
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { useMemo } from '@wordpress/element';
+import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { useInstanceId, usePrevious } from '@wordpress/compose';
 
 /**
@@ -25,7 +26,6 @@ import { useUpdateEffect, useCx } from '../../utils/hooks';
 import { View } from '../../view';
 import BaseControl from '../../base-control';
 import type { ToggleGroupControlProps } from '../types';
-import ToggleGroupControlBackdrop from './toggle-group-control-backdrop';
 import ToggleGroupControlContext from '../context';
 import * as styles from './styles';
 
@@ -48,7 +48,6 @@ function ToggleGroupControl(
 		...otherProps
 	} = useContextSystem( props, 'ToggleGroupControl' );
 	const cx = useCx();
-	const [ resizeListener, sizes ] = useResizeAware();
 	const baseId = useInstanceId(
 		ToggleGroupControl,
 		'toggle-group-control'
@@ -75,6 +74,11 @@ function ToggleGroupControl(
 		}
 	}, [ value ] );
 
+	const isMount = useRef( true );
+	useEffect( () => void ( isMount.current = false ), [] );
+
+	const staleState = usePrevious( radio.state );
+
 	const classes = useMemo(
 		() =>
 			cx(
@@ -88,7 +92,12 @@ function ToggleGroupControl(
 	return (
 		<BaseControl help={ help }>
 			<ToggleGroupControlContext.Provider
-				value={ { ...radio, isBlock: ! isAdaptiveWidth } }
+				value={ {
+					...radio,
+					isBlock: ! isAdaptiveWidth,
+					staleState,
+					isMount: isMount.current,
+				} }
 			>
 				{ ! hideLabelFromVision && (
 					<div>
@@ -105,9 +114,7 @@ function ToggleGroupControl(
 					{ ...otherProps }
 					ref={ forwardedRef }
 				>
-					{ resizeListener }
-					<ToggleGroupControlBackdrop containerSizes={ sizes } />
-					{ children }
+					<LayoutGroup id={ baseId }>{ children }</LayoutGroup>
 				</RadioGroup>
 			</ToggleGroupControlContext.Provider>
 		</BaseControl>

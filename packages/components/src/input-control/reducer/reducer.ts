@@ -1,12 +1,12 @@
 /**
  * External dependencies
  */
-import type { SyntheticEvent } from 'react';
+import type { SyntheticEvent, ChangeEvent, PointerEvent } from 'react';
 
 /**
  * WordPress dependencies
  */
-import { useReducer } from '@wordpress/element';
+import { useLayoutEffect, useReducer, useRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -18,21 +18,22 @@ import {
 	initialStateReducer,
 } from './state';
 import * as actions from './actions';
+import type { InputChangeCallback } from '../types';
 
 /**
- * Prepares initialState for the reducer.
+ * Defaults state for the reducer.
  *
- * @param  initialState The initial state.
- * @return Prepared initialState for the reducer
+ * @param  state The partial state.
+ * @return Prepared state for the reducer
  */
-function mergeInitialState(
-	initialState: Partial< InputState > = initialInputControlState
+function defaultState(
+	state: Partial< InputState > = initialInputControlState
 ): InputState {
-	const { value } = initialState;
+	const { value } = state;
 
 	return {
 		...initialInputControlState,
-		...initialState,
+		...state,
 		initialValue: value,
 	} as InputState;
 }
@@ -131,32 +132,49 @@ function inputControlStateReducer(
  * This technique uses the "stateReducer" design pattern:
  * https://kentcdodds.com/blog/the-state-reducer-pattern/
  *
- * @param  stateReducer An external state reducer.
- * @param  initialState The initial state for the reducer.
+ * @param  stateReducer    An external state reducer.
+ * @param  incomingState   The initial state for the reducer.
+ * @param  onChangeHandler A callback to handle changes.
  * @return State, dispatch, and a collection of actions.
  */
 export function useInputControlStateReducer(
 	stateReducer: StateReducer = initialStateReducer,
-	initialState: Partial< InputState > = initialInputControlState
+	incomingState: Partial< InputState > = initialInputControlState,
+	onChangeHandler: InputChangeCallback
 ) {
 	const [ state, dispatch ] = useReducer< StateReducer >(
 		inputControlStateReducer( stateReducer ),
-		mergeInitialState( initialState )
+		defaultState( incomingState )
 	);
+
+	const refWasDispatch = useRef< boolean >( false );
+
+	// Uses incoming state on renders not triggered by a dispatch.
+	if ( ! refWasDispatch.current ) {
+		Object.assign( state, incomingState, { _event: undefined } );
+	}
+
+	// Propagates the value when it has updated due to a reducer action.
+	useLayoutEffect( () => {
+		if (
+			state._event &&
+			incomingState.value !== state.value &&
+			! state.isDirty
+		) {
+			onChangeHandler( state.value, {
+				event: state._event as
+					| ChangeEvent< HTMLInputElement >
+					| PointerEvent< HTMLInputElement >,
+			} );
+		}
+		refWasDispatch.current = false;
+	}, [ state.value, state._event ] );
 
 	const createChangeEvent = ( type: actions.ChangeEventAction[ 'type' ] ) => (
 		nextValue: actions.ChangeEventAction[ 'payload' ][ 'value' ],
 		event: actions.ChangeEventAction[ 'payload' ][ 'event' ]
 	) => {
-		/**
-		 * Persist allows for the (Synthetic) event to be used outside of
-		 * this function call.
-		 * https://reactjs.org/docs/events.html#event-pooling
-		 */
-		if ( event && event.persist ) {
-			event.persist();
-		}
-
+		refWasDispatch.current = true;
 		dispatch( {
 			type,
 			payload: { value: nextValue, event },
@@ -166,21 +184,14 @@ export function useInputControlStateReducer(
 	const createKeyEvent = ( type: actions.KeyEventAction[ 'type' ] ) => (
 		event: actions.KeyEventAction[ 'payload' ][ 'event' ]
 	) => {
-		/**
-		 * Persist allows for the (Synthetic) event to be used outside of
-		 * this function call.
-		 * https://reactjs.org/docs/events.html#event-pooling
-		 */
-		if ( event && event.persist ) {
-			event.persist();
-		}
-
+		refWasDispatch.current = true;
 		dispatch( { type, payload: { event } } );
 	};
 
 	const createDragEvent = ( type: actions.DragEventAction[ 'type' ] ) => (
 		payload: actions.DragEventAction[ 'payload' ]
 	) => {
+		refWasDispatch.current = true;
 		dispatch( { type, payload } );
 	};
 

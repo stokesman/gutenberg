@@ -215,7 +215,7 @@ describe( 'UnitControl', () => {
 			expect( input.value ).toBe( '300px' );
 			expect( state ).toBe( 50 );
 
-			user.keyboard( '{Escape}' );
+			await user.keyboard( '{Escape}' );
 
 			expect( input.value ).toBe( '50' );
 			expect( state ).toBe( 50 );
@@ -522,7 +522,7 @@ describe( 'UnitControl', () => {
 			const input = getInput();
 			await user.clear( input );
 			await user.type( input, '55 em' );
-			user.keyboard( '{Enter}' );
+			await user.keyboard( '{Enter}' );
 
 			expect( state ).toBe( '55em' );
 		} );
@@ -539,7 +539,7 @@ describe( 'UnitControl', () => {
 			const input = getInput();
 			await user.clear( input );
 			await user.type( input, '61   PX' );
-			user.keyboard( '{Enter}' );
+			await user.keyboard( '{Enter}' );
 
 			expect( state ).toBe( '61px' );
 		} );
@@ -556,7 +556,7 @@ describe( 'UnitControl', () => {
 			const input = getInput();
 			await user.clear( input );
 			await user.type( input, '55 em' );
-			user.keyboard( '{Enter}' );
+			await user.keyboard( '{Enter}' );
 
 			expect( state ).toBe( '55em' );
 		} );
@@ -573,7 +573,7 @@ describe( 'UnitControl', () => {
 			const input = getInput();
 			await user.clear( input );
 			await user.type( input, '-10  %' );
-			user.keyboard( '{Enter}' );
+			await user.keyboard( '{Enter}' );
 
 			expect( state ).toBe( '-10%' );
 		} );
@@ -590,7 +590,7 @@ describe( 'UnitControl', () => {
 			const input = getInput();
 			await user.clear( input );
 			await user.type( input, '123       rEm  ' );
-			user.keyboard( '{Enter}' );
+			await user.keyboard( '{Enter}' );
 
 			expect( state ).toBe( '123rem' );
 		} );

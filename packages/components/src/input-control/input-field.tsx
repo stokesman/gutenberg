@@ -23,7 +23,6 @@ import type { WordPressComponentProps } from '../ui/context';
 import { useDragCursor } from './utils';
 import { Input } from './styles/input-control-styles';
 import { useInputControlStateReducer } from './reducer/reducer';
-import { isValueEmpty } from '../utils/values';
 import type { InputFieldProps } from './types';
 
 function InputField(
@@ -88,15 +87,8 @@ function InputField(
 		 * If isPressEnterToChange is set, this commits the value to
 		 * the onChange callback.
 		 */
-		if (
-			( isPressEnterToChange && isDirty ) ||
-			! event.target.validity.valid
-		) {
-			if ( ! isValueEmpty( value ) ) {
-				handleOnCommit( event );
-			} else {
-				reset( valueProp, event );
-			}
+		if ( isDirty || ! event.target.validity.valid ) {
+			handleOnCommit( event );
 		}
 	};
 

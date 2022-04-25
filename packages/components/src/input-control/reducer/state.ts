@@ -1,15 +1,14 @@
 /**
  * External dependencies
  */
-import type { Reducer, SyntheticEvent } from 'react';
+import type { Reducer } from 'react';
 
 /**
  * Internal dependencies
  */
-import type { InputAction } from './actions';
+import type { InputAction, ControlAction } from './actions';
 
 export interface InputState {
-	_event: SyntheticEvent | undefined;
 	error: unknown;
 	initialValue?: string;
 	isDirty: boolean;
@@ -19,12 +18,11 @@ export interface InputState {
 	value?: string;
 }
 
-export type StateReducer = Reducer< InputState, InputAction >;
+export type StateReducer = Reducer< InputState, InputAction | ControlAction >;
 
 export const initialStateReducer: StateReducer = ( state: InputState ) => state;
 
 export const initialInputControlState: InputState = {
-	_event: undefined,
 	error: null,
 	initialValue: '',
 	isDirty: false,

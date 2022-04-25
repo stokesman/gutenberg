@@ -7,9 +7,11 @@ import type { SyntheticEvent } from 'react';
  * Internal dependencies
  */
 import type { DragProps } from '../types';
+import type { InputState } from './state';
 
 export const CHANGE = 'CHANGE';
 export const COMMIT = 'COMMIT';
+export const CONTROL = 'CONTROL';
 export const DRAG_END = 'DRAG_END';
 export const DRAG_START = 'DRAG_START';
 export const DRAG = 'DRAG';
@@ -20,7 +22,7 @@ export const PRESS_UP = 'PRESS_UP';
 export const RESET = 'RESET';
 
 interface EventPayload {
-	event?: SyntheticEvent;
+	event: SyntheticEvent;
 }
 
 interface Action< Type, ExtraPayload = {} > {
@@ -42,6 +44,10 @@ export type DragEndAction = Action< typeof DRAG_END, DragProps >;
 export type DragAction = Action< typeof DRAG, DragProps >;
 export type ResetAction = Action< typeof RESET, Partial< ValuePayload > >;
 export type InvalidateAction = Action< typeof INVALIDATE, { error: unknown } >;
+export type ControlAction = {
+	type: typeof CONTROL;
+	payload: Partial< InputState >;
+};
 
 export type ChangeEventAction = ChangeAction | ResetAction | CommitAction;
 

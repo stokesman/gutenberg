@@ -52,7 +52,22 @@ function inputControlStateReducer(
 	composedStateReducers: StateReducer
 ): StateReducer {
 	return ( state, action ) => {
-		const nextState = { ...state };
+		// Returns early for CONTROL actions. These are updates from props and
+		// do not need to be specialized via additional reducers.
+		if ( action.type === actions.CONTROL ) {
+			let { value = state.value } = action.payload;
+			value ??= '';
+			if ( value !== '' ) value = `${ value }`;
+
+			const {
+				isDragEnabled = state.isDragEnabled,
+				isPressEnterToChange = state.isPressEnterToChange,
+			} = action.payload;
+
+			return { ...state, value, isDragEnabled, isPressEnterToChange };
+		}
+
+		let nextState = { ...state };
 
 		switch ( action.type ) {
 			/**
@@ -109,16 +124,18 @@ function inputControlStateReducer(
 				break;
 		}
 
-		if ( action.payload.event ) {
-			nextState._event = action.payload.event;
-		}
-
 		/**
 		 * Send the nextState + action to the composedReducers via
 		 * this "bridge" mechanism. This allows external stateReducers
 		 * to hook into actions, and modify state if needed.
 		 */
-		return composedStateReducers( nextState, action );
+		nextState = composedStateReducers( nextState, action );
+
+		// Ensures the value is a string
+		if ( typeof nextState.value !== 'string' )
+			nextState.value = `${ nextState.value }`;
+
+		return nextState;
 	};
 }
 
@@ -146,35 +163,50 @@ export function useInputControlStateReducer(
 		inputControlStateReducer( stateReducer ),
 		defaultState( incomingState )
 	);
+	// These are the state values that are controlled by props.
+	const { value, isPressEnterToChange, isDragEnabled } = incomingState;
 
-	const refWasDispatch = useRef< boolean >( false );
+	const refEvent = useRef< SyntheticEvent | null >( null );
+	const refIncomingState = useRef( incomingState );
+	const refLastChange = useRef< InputState[ 'value' ] >(
+		`${ incomingState.value }`
+	);
 
-	// Uses incoming state on renders not triggered by a dispatch.
-	if ( ! refWasDispatch.current ) {
-		Object.assign( state, incomingState, { _event: undefined } );
-	}
+	// Freshens the ref.
+	useLayoutEffect( () => void ( refIncomingState.current = incomingState ) );
 
-	// Propagates the value when it has updated due to a reducer action.
+	// Sends the value out through onChange when internal actions change it.
 	useLayoutEffect( () => {
 		if (
-			state._event &&
-			incomingState.value !== state.value &&
-			! state.isDirty
+			refEvent.current &&
+			! state.isDirty &&
+			state.value !== refLastChange.current
 		) {
 			onChangeHandler( state.value, {
-				event: state._event as
+				event: refEvent.current as
 					| ChangeEvent< HTMLInputElement >
 					| PointerEvent< HTMLInputElement >,
 			} );
+			refLastChange.current = state.value;
+			refEvent.current = null;
 		}
-		refWasDispatch.current = false;
-	}, [ state.value, state._event ] );
+	}, [ state.value ] );
+
+	// Updates state from when incoming props change.
+	useLayoutEffect( () => {
+		if ( ! refEvent.current ) {
+			dispatch( {
+				type: actions.CONTROL,
+				payload: refIncomingState.current,
+			} );
+		}
+	}, [ value, isPressEnterToChange, isDragEnabled ] );
 
 	const createChangeEvent = ( type: actions.ChangeEventAction[ 'type' ] ) => (
 		nextValue: actions.ChangeEventAction[ 'payload' ][ 'value' ],
 		event: actions.ChangeEventAction[ 'payload' ][ 'event' ]
 	) => {
-		refWasDispatch.current = true;
+		refEvent.current = event;
 		dispatch( {
 			type,
 			payload: { value: nextValue, event },
@@ -184,14 +216,14 @@ export function useInputControlStateReducer(
 	const createKeyEvent = ( type: actions.KeyEventAction[ 'type' ] ) => (
 		event: actions.KeyEventAction[ 'payload' ][ 'event' ]
 	) => {
-		refWasDispatch.current = true;
+		refEvent.current = event;
 		dispatch( { type, payload: { event } } );
 	};
 
 	const createDragEvent = ( type: actions.DragEventAction[ 'type' ] ) => (
 		payload: actions.DragEventAction[ 'payload' ]
 	) => {
-		refWasDispatch.current = true;
+		refEvent.current = payload.event;
 		dispatch( { type, payload } );
 	};
 

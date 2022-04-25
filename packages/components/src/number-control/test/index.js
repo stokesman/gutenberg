@@ -91,7 +91,7 @@ describe( 'NumberControl', () => {
 			await waitFor( () => {
 				expect( spy ).toHaveBeenCalledTimes( 2 );
 				expect( spy ).toHaveBeenNthCalledWith( 1, '1' );
-				expect( spy ).toHaveBeenNthCalledWith( 2, 4 );
+				expect( spy ).toHaveBeenNthCalledWith( 2, '4' );
 			} );
 		} );
 
@@ -123,7 +123,7 @@ describe( 'NumberControl', () => {
 			// First call: invalid, unclamped value
 			expect( spy ).toHaveBeenNthCalledWith( 1, '14', false );
 			// Second call: valid, clamped value
-			expect( spy ).toHaveBeenNthCalledWith( 2, 10, true );
+			expect( spy ).toHaveBeenNthCalledWith( 2, '10', true );
 		} );
 	} );
 

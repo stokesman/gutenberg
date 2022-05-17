@@ -20,6 +20,7 @@ import { showBlockToolbar } from './show-block-toolbar';
 import { saveSiteEditorEntities } from './site-editor';
 import { setIsFixedToolbar } from './set-is-fixed-toolbar';
 import { transformBlockTo } from './transform-block-to';
+import { saveDraft } from './save-draft';
 
 type EditorConstructorProps = {
 	page: Page;
@@ -60,6 +61,8 @@ export class Editor {
 	openPreviewPage: typeof openPreviewPage = openPreviewPage.bind( this );
 	/** @borrows publishPost as this.publishPost */
 	publishPost: typeof publishPost = publishPost.bind( this );
+	/** @borrows saveDraft as this.saveDraft */
+	saveDraft = saveDraft;
 	/** @borrows saveSiteEditorEntities as this.saveSiteEditorEntities */
 	saveSiteEditorEntities: typeof saveSiteEditorEntities =
 		saveSiteEditorEntities.bind( this );

@@ -21,6 +21,7 @@ function reducer( state = {}, action ) {
 					keyCombination: action.keyCombination,
 					aliases: action.aliases,
 					description: action.description,
+					predicate: action.predicate,
 				},
 			};
 		case 'UNREGISTER_SHORTCUT':

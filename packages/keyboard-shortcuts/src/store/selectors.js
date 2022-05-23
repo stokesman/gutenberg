@@ -116,6 +116,11 @@ export function getShortcutAliases( state, name ) {
 		: EMPTY_ARRAY;
 }
 
+export const getShortcutPredicate = createSelector(
+	( state, name ) => state[ name ]?.predicate ?? ( () => true ),
+	( state, name ) => [ state[ name ] ]
+);
+
 export const getAllShortcutKeyCombinations = createSelector(
 	( state, name ) => {
 		return compact( [

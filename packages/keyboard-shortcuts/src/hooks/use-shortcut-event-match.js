@@ -16,7 +16,7 @@ import { store as keyboardShortcutsStore } from '../store';
  *                    predefined shortcut combination.
  */
 export default function useShortcutEventMatch() {
-	const { getAllShortcutKeyCombinations } = useSelect(
+	const { getAllShortcutKeyCombinations, getShortcutPredicate } = useSelect(
 		keyboardShortcutsStore
 	);
 
@@ -32,7 +32,10 @@ export default function useShortcutEventMatch() {
 	function isMatch( name, event ) {
 		return getAllShortcutKeyCombinations( name ).some(
 			( { modifier, character } ) => {
-				return isKeyboardEvent[ modifier ]( event, character );
+				return (
+					isKeyboardEvent[ modifier ]( event, character ) &&
+					getShortcutPredicate( name )( event )
+				);
 			}
 		);
 	}

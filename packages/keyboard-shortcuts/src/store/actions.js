@@ -34,6 +34,7 @@ export function registerShortcut( {
 	description,
 	keyCombination,
 	aliases,
+	predicate,
 } ) {
 	return {
 		type: 'REGISTER_SHORTCUT',
@@ -42,6 +43,7 @@ export function registerShortcut( {
 		keyCombination,
 		aliases,
 		description,
+		predicate,
 	};
 }
 

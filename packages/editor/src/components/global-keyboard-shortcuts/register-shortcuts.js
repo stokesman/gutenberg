@@ -29,6 +29,8 @@ function EditorKeyboardShortcutsRegister() {
 				modifier: 'primary',
 				character: 'z',
 			},
+			predicate: ( event ) =>
+				! event.target.matches( 'input:not([type=range]), textarea' ),
 		} );
 
 		registerShortcut( {
@@ -39,6 +41,8 @@ function EditorKeyboardShortcutsRegister() {
 				modifier: 'primaryShift',
 				character: 'z',
 			},
+			predicate: ( event ) =>
+				! event.target.matches( 'input:not([type=range]), textarea' ),
 		} );
 	}, [ registerShortcut ] );
 

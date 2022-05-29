@@ -21,12 +21,9 @@ const setupUser = () =>
 	} );
 
 const getRangeInput = () => screen.getByRole( 'slider' ) as HTMLInputElement;
-// container.querySelector( 'input[type="range"]' );
 const getNumberInput = () =>
 	screen.getByRole( 'spinbutton' ) as HTMLInputElement;
-// container.querySelector( 'input[type="number"]' );
 const getResetButton = () => screen.getByText( /Reset/ ) as HTMLButtonElement;
-// container.querySelector( '.components-range-control__reset' );
 
 const fireChangeEvent = ( element: Element, value?: number | string ) =>
 	fireEvent.change( element, { target: { value } } );

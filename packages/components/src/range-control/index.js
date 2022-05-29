@@ -101,7 +101,7 @@ function RangeControl(
 	const isCurrentlyFocused = inputRef.current?.matches( ':focus' );
 	const isThumbFocused = ! disabled && isFocused;
 
-	const isValueReset = value === null;
+	const isValueReset = value === null || isNaN( value );
 	const currentValue = value !== undefined ? value : currentInput;
 
 	const inputSliderValue = isValueReset ? '' : currentValue;

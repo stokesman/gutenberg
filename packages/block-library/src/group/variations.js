@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { group, row, stack } from '@wordpress/icons';
+import { group, row, stack, termDescription } from '@wordpress/icons';
 
 const variations = [
 	{
@@ -39,6 +39,16 @@ const variations = [
 			blockAttributes.layout?.type === 'flex' &&
 			blockAttributes.layout?.orientation === 'vertical',
 		icon: stack,
+	},
+	{
+		name: 'group-inline',
+		title: __( 'Lineup' ),
+		description: __( 'Arrange blocks in text lines.' ),
+		attributes: { layout: { type: 'inline' } },
+		scope: [ 'inserter', 'transform' ],
+		isActive: ( blockAttributes ) =>
+			blockAttributes.layout?.type === 'inline',
+		icon: termDescription,
 	},
 ];
 

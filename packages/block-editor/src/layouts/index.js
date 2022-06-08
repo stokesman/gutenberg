@@ -3,8 +3,9 @@
  */
 import flex from './flex';
 import flow from './flow';
+import inline from './inline';
 
-const layoutTypes = [ flow, flex ];
+const layoutTypes = [ flow, flex, inline ];
 
 /**
  * Retrieves a layout type by name.

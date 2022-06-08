@@ -7,7 +7,7 @@ import { isEmpty } from 'lodash';
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { paragraph as icon } from '@wordpress/icons';
+import { paragraph as icon, reset as span } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -54,4 +54,16 @@ export const settings = {
 	},
 	edit,
 	save,
+	variations: [
+		{
+			name: 'text',
+			title: __( 'Text' ),
+			description: __( 'Form a word or few.' ),
+			attributes: { layout: { dropCap: 'false' } },
+			scope: [ 'inserter', 'transform' ],
+			// isActive: ( blockAttributes, variationAttributes, context ) =>
+			// 	blockAttributes.layout?.type === 'inline',
+			icon: span,
+		},
+	],
 };

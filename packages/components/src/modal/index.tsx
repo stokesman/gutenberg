@@ -75,7 +75,7 @@ function UnforwardedModal(
 	const focusOnMountRef = useFocusOnMount( focusOnMount );
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusReturnRef = useFocusReturn();
-	const focusOutsideProps = useFocusOutside( onRequestClose );
+	const focusOutsideRef = useFocusOutside( onRequestClose );
 
 	const [ hasScrolledContent, setHasScrolledContent ] = useState( false );
 
@@ -110,6 +110,13 @@ function UnforwardedModal(
 		}
 	}
 
+	let handleClickOutside;
+	if ( shouldCloseOnClickOutside ) {
+		handleClickOutside = ( event: PointerEvent ) => {
+			if ( event.target === event.currentTarget ) onRequestClose();
+		};
+	}
+
 	const onContentContainerScroll = useCallback(
 		( e: UIEvent< HTMLDivElement > ) => {
 			const scrollY = e?.currentTarget?.scrollTop ?? -1;
@@ -132,6 +139,7 @@ function UnforwardedModal(
 				overlayClassName
 			) }
 			onKeyDown={ handleEscapeKeyDown }
+			onPointerDown={ handleClickOutside }
 		>
 			<StyleProvider document={ document }>
 				<div
@@ -147,15 +155,13 @@ function UnforwardedModal(
 						constrainedTabbingRef,
 						focusReturnRef,
 						focusOnMountRef,
+						focusOutsideRef,
 					] ) }
 					role={ role }
 					aria-label={ contentLabel }
 					aria-labelledby={ contentLabel ? undefined : headingId }
 					aria-describedby={ aria.describedby }
 					tabIndex={ -1 }
-					{ ...( shouldCloseOnClickOutside
-						? focusOutsideProps
-						: {} ) }
 					onKeyDown={ onKeyDown }
 				>
 					<div

@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { KeyboardEvent, RefCallback, SyntheticEvent } from 'react';
+import type { KeyboardEvent, RefCallback } from 'react';
 
 /**
  * WordPress dependencies
@@ -17,7 +17,6 @@ import useFocusOnMount from '../use-focus-on-mount';
 import useFocusReturn from '../use-focus-return';
 import useFocusOutside from '../use-focus-outside';
 import useMergeRefs from '../use-merge-refs';
-import type { FocusOutsideReturnValue } from '../use-focus-outside';
 
 type DialogOptions = {
 	focusOnMount?: Parameters< typeof useFocusOnMount >[ 0 ];
@@ -27,15 +26,12 @@ type DialogOptions = {
 	 *
 	 * @deprecated
 	 */
-	__unstableOnClose?: (
-		type: string | undefined,
-		event: SyntheticEvent
-	) => void;
+	__unstableOnClose?: ( type: string | undefined, event: FocusEvent ) => void;
 };
 
 type useDialogReturn = [
 	RefCallback< HTMLElement >,
-	FocusOutsideReturnValue & Pick< HTMLElement, 'tabIndex' >
+	Pick< HTMLElement, 'tabIndex' >
 ];
 
 /**
@@ -55,7 +51,7 @@ function useDialog( options: DialogOptions ): useDialogReturn {
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusOnMountRef = useFocusOnMount( options.focusOnMount );
 	const focusReturnRef = useFocusReturn();
-	const focusOutsideProps = useFocusOutside( ( event ) => {
+	const focusOutsideRef = useFocusOutside( ( event ) => {
 		// This unstable prop  is here only to manage backward compatibility
 		// for the Popover component otherwise, the onClose should be enough.
 		if ( currentOptions.current?.__unstableOnClose ) {
@@ -88,9 +84,9 @@ function useDialog( options: DialogOptions ): useDialogReturn {
 			options.focusOnMount !== false ? focusReturnRef : null,
 			options.focusOnMount !== false ? focusOnMountRef : null,
 			closeOnEscapeRef,
+			focusOutsideRef,
 		] ),
 		{
-			...focusOutsideProps,
 			tabIndex: -1,
 		},
 	];

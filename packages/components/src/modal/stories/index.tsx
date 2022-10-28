@@ -7,6 +7,7 @@ import type { ComponentStory, ComponentMeta } from '@storybook/react';
  * WordPress dependencies
  */
 import { useState } from '@wordpress/element';
+import { __experimentalUseFocusOutside as useFocusOutside } from '@wordpress/compose';
 
 /**
  * Internal dependencies
@@ -41,6 +42,21 @@ const meta: ComponentMeta< typeof Modal > = {
 };
 export default meta;
 
+const FocusOutsideComponent = ( { onFocusOutside: callback } ) => (
+	<div>
+		{ /* Wrapper */ }
+		<div ref={ useFocusOutside( callback ) }>
+			<input type="text" />
+			<button>Button inside the wrapper</button>
+			<iframe title="test-iframe">
+				<button>Inside the iframe</button>
+			</iframe>
+		</div>
+
+		<button>Button outside the wrapper</button>
+	</div>
+);
+
 const Template: ComponentStory< typeof Modal > = ( {
 	onRequestClose,
 	...args
@@ -57,6 +73,9 @@ const Template: ComponentStory< typeof Modal > = ( {
 			<Button variant="secondary" onClick={ openModal }>
 				Open Modal
 			</Button>
+			<FocusOutsideComponent
+				onFocusOutside={ (e) => console.log( 'w0t!?', e ) }
+			/>
 			{ isOpen && (
 				<Modal
 					onRequestClose={ closeModal }

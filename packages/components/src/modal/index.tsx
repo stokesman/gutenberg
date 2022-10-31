@@ -75,7 +75,7 @@ function UnforwardedModal(
 	const focusOnMountRef = useFocusOnMount( focusOnMount );
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusReturnRef = useFocusReturn();
-	const focusOutsideProps = useFocusOutside( onRequestClose );
+	const focusOutsideRef = useFocusOutside( onRequestClose );
 
 	const [ hasScrolledContent, setHasScrolledContent ] = useState( false );
 
@@ -147,15 +147,13 @@ function UnforwardedModal(
 						constrainedTabbingRef,
 						focusReturnRef,
 						focusOnMountRef,
+						shouldCloseOnClickOutside ? focusOutsideRef : null,
 					] ) }
 					role={ role }
 					aria-label={ contentLabel }
 					aria-labelledby={ contentLabel ? undefined : headingId }
 					aria-describedby={ aria.describedby }
 					tabIndex={ -1 }
-					{ ...( shouldCloseOnClickOutside
-						? focusOutsideProps
-						: {} ) }
 					onKeyDown={ onKeyDown }
 				>
 					<div

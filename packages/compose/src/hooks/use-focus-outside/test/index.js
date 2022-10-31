@@ -31,7 +31,7 @@ const IFrame = ( { children, ...props } ) => {
 const FocusOutsideComponent = ( { onFocusOutside: callback } ) => (
 	<div>
 		{ /* Wrapper */ }
-		<div { ...useFocusOutside( callback ) }>
+		<div ref={ useFocusOutside( callback ) }>
 			<input type="text" />
 			<button>Button inside the wrapper</button>
 			<IFrame>

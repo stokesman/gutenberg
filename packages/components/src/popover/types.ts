@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { ReactNode, MutableRefObject, SyntheticEvent } from 'react';
+import type { ReactNode, MutableRefObject } from 'react';
 import type { Placement } from '@floating-ui/react-dom';
 
 type PositionYAxis = 'top' | 'middle' | 'bottom';
@@ -86,7 +86,7 @@ export type PopoverProps = {
 	 *
 	 * When not provided, the `onClose` callback will be called instead.
 	 */
-	onFocusOutside?: ( event: SyntheticEvent ) => void;
+	onFocusOutside?: ( event: FocusEvent ) => void;
 	/**
 	 * Used to customize the header text shown when the popover is toggled to
 	 * fullscreen on mobile viewports (see the `expandOnMobile` prop).

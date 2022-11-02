@@ -1,13 +1,32 @@
 /**
  * External dependencies
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+/**
+ * WordPress dependencies
+ */
+import { useState, createPortal } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
 import useFocusOutside from '../';
+
+const IFrame = ( { children, ...props } ) => {
+	const [ contentBodyNode, setContentBodyNode ] = useState();
+	const setNode = ( node ) => {
+		if ( node ) setContentBodyNode( node.contentWindow.document.body );
+	};
+
+	return (
+		<>
+			<iframe title="test-iframe" { ...props } ref={ setNode }></iframe>
+			{ contentBodyNode && createPortal( children, contentBodyNode ) }
+		</>
+	);
+};
 
 const FocusOutsideComponent = ( { onFocusOutside: callback } ) => (
 	<div>
@@ -15,9 +34,9 @@ const FocusOutsideComponent = ( { onFocusOutside: callback } ) => (
 		<div { ...useFocusOutside( callback ) }>
 			<input type="text" />
 			<button>Button inside the wrapper</button>
-			<iframe title="test-iframe">
+			<IFrame>
 				<button>Inside the iframe</button>
-			</iframe>
+			</IFrame>
 		</div>
 
 		<button>Button outside the wrapper</button>
@@ -67,6 +86,28 @@ describe( 'useFocusOutside', () => {
 		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
 	} );
 
+	it( 'should not call handler if focus moves inside a contained iframe', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup( {
+			advanceTimers: jest.advanceTimersByTime,
+		} );
+
+		render(
+			<FocusOutsideComponent onFocusOutside={ mockOnFocusOutside } />
+		);
+
+		// Click the input and the button, causing multiple focus/blur events.
+		await user.click( screen.getByRole( 'textbox' ) );
+		const iframe = screen.getByTitle( 'test-iframe' );
+		await user.click(
+			within( iframe.contentDocument.body ).getByRole( 'button', {
+				name: 'Inside the iframe',
+			} )
+		);
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+	} );
+
 	it( 'should call handler if focus shifts to element outside component', async () => {
 		const mockOnFocusOutside = jest.fn();
 		const user = userEvent.setup( {
@@ -85,6 +126,32 @@ describe( 'useFocusOutside', () => {
 		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
 
 		// Click and focus button outside the wrapper
+		await user.click(
+			screen.getByRole( 'button', { name: 'Button outside the wrapper' } )
+		);
+
+		expect( mockOnFocusOutside ).toHaveBeenCalled();
+	} );
+
+	it( 'should call handler if focus shifts to iframed content then to outside component', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup( {
+			advanceTimers: jest.advanceTimersByTime,
+		} );
+
+		render(
+			<FocusOutsideComponent onFocusOutside={ mockOnFocusOutside } />
+		);
+
+		// Click and focus button inside the iframe inside the wrapper.
+		const iframe = screen.getByTitle( 'test-iframe' );
+		await user.click(
+			within( iframe.contentDocument.body ).getByRole( 'button', {
+				name: 'Inside the iframe',
+			} )
+		);
+
+		// Click and focus button outside the wrapper.
 		await user.click(
 			screen.getByRole( 'button', { name: 'Button outside the wrapper' } )
 		);

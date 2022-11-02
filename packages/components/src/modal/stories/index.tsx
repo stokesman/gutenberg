@@ -2,6 +2,8 @@
  * External dependencies
  */
 import type { ComponentStory, ComponentMeta } from '@storybook/react';
+import type { FC, RefCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * WordPress dependencies
@@ -41,6 +43,23 @@ const meta: ComponentMeta< typeof Modal > = {
 };
 export default meta;
 
+const IFrame: FC< { title?: string; width: number; height: number } > = ( {
+	children,
+	...props
+} ) => {
+	const [ contentBodyNode, setContentBodyNode ] = useState< HTMLElement >();
+	const setNode: RefCallback< HTMLIFrameElement > = ( node ) => {
+		if ( node ) setContentBodyNode( node.contentWindow?.document.body );
+	};
+
+	return (
+		<>
+			<iframe title="test-iframe" { ...props } ref={ setNode }></iframe>
+			{ contentBodyNode && createPortal( children, contentBodyNode ) }
+		</>
+	);
+};
+
 const Template: ComponentStory< typeof Modal > = ( {
 	onRequestClose,
 	...args
@@ -74,6 +93,18 @@ const Template: ComponentStory< typeof Modal > = ( {
 						non proident, sunt in culpa qui officia deserunt mollit
 						anim id est laborum.
 					</p>
+
+					<button>Ciao</button>
+					<iframe
+						title="Example 1"
+						width="300"
+						height="200"
+						src="https://www.openstreetmap.org/export/embed.html?bbox=-0.004017949104309083%2C51.47612752641776%2C0.00030577182769775396%2C51.478569861898606&layer=mapnik"
+					/>
+
+					<IFrame title="Example 2" width={ 300 } height={ 200 }>
+						<button>Ciao</button>
+					</IFrame>
 
 					<Button variant="secondary" onClick={ closeModal }>
 						Close Modal

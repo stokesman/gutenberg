@@ -20,6 +20,13 @@ import useRefEffect from '../use-ref-effect';
  *                        referenced element.
  *
  * @return Element ref.
+ *
+ * @todo
+ * - Test previous implementation for how it works if the root element is not
+ *   tabbable and discover any differences with this one.
+ * - Double-check setTimeout is really needed in onWindowFocus.
+ * - Add explanatory inline comments
+ * - Add @example?
  */
 export default function useFocusOutside(
 	onFocusOutside: ( event: FocusEvent ) => void
@@ -29,17 +36,13 @@ export default function useFocusOutside(
 		refOnFocusOutside.current = onFocusOutside;
 	}, [ onFocusOutside ] );
 
-	/**
-	 * @todo
-	 * - Consider checking for iframes contained in the ref before enabling
-	 *   polling. Tradeoff, would have to add mutation observer in case one
-	 *   shows up at a later render.
-	 */
-	const setRef = useRefEffect< HTMLElement >( ( root ) => {
+	return useRefEffect< HTMLElement >( ( root ) => {
 		const doc = root.ownerDocument;
 		if ( ! doc ) return;
 
 		let hasFocusWithin = root.contains( doc.activeElement );
+
+		const subviewList = root.getElementsByTagName( 'iframe' );
 
 		const sendIfOutside = ( event: FocusEvent, element: Node | null ) => {
 			hasFocusWithin = root.contains( element );
@@ -54,19 +57,11 @@ export default function useFocusOutside(
 			}
 		};
 
-		const onPoll = () => {
-			if ( root.contains( doc.activeElement ) ) {
-				hasFocusWithin = true;
-				stopPolling( doc, onPoll );
-			}
-		};
-
 		const onWindowBlur = () => {
-			// Starts polling so that if focus returns by way of a sub-window’s
-			// content, where it won't trigger a focus event on the owner
-			// document, it is noted in order to determine if onFocusOutside
-			// should be called.
-			startPolling( doc, onPoll );
+			if ( doc.activeElement instanceof HTMLIFrameElement )
+				hasFocusWithin = Array.from( subviewList ).includes(
+					doc.activeElement
+				);
 		};
 
 		const onWindowFocus = ( event: FocusEvent ) => {
@@ -74,43 +69,14 @@ export default function useFocusOutside(
 				setTimeout( () => sendIfOutside( event, doc.activeElement ) );
 		};
 
-		if ( ! hasFocusWithin ) startPolling( doc, onPoll );
 		doc.defaultView?.addEventListener( 'blur', onWindowBlur );
 		doc.defaultView?.addEventListener( 'focus', onWindowFocus );
 		root.addEventListener( 'focusout', onFocusOut );
 
 		return () => {
-			stopPolling( doc, onPoll );
 			doc.defaultView?.removeEventListener( 'blur', onWindowBlur );
 			doc.defaultView?.removeEventListener( 'focus', onWindowFocus );
 			root.removeEventListener( 'focusout', onFocusOut );
 		};
 	}, [] );
-
-	return setRef;
 }
-
-let pollingId: number | undefined;
-const mapDocToCallbackSet = new Map< Document, Set< () => void > >();
-const startPolling = ( doc: Document, callback: () => void ) => {
-	const callbackSet = mapDocToCallbackSet.get( doc );
-	if ( callbackSet ) callbackSet.add( callback );
-	else mapDocToCallbackSet.set( doc, new Set( [ callback ] ) );
-
-	if ( pollingId === undefined )
-		pollingId = setInterval( () => {
-			for ( const set of mapDocToCallbackSet.values() ) {
-				for ( const cb of set ) cb();
-			}
-		}, 144 );
-};
-
-const stopPolling = ( doc: Document, callback: () => void ) => {
-	const callbackSet = mapDocToCallbackSet.get( doc );
-	callbackSet?.delete( callback );
-	if ( callbackSet?.size === 0 ) mapDocToCallbackSet.delete( doc );
-	if ( mapDocToCallbackSet.size === 0 ) {
-		clearInterval( pollingId );
-		pollingId = undefined;
-	}
-};

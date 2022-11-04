@@ -7,6 +7,7 @@ import type {
 	ReactNode,
 	KeyboardEventHandler,
 	KeyboardEvent,
+	SyntheticEvent,
 } from 'react';
 
 /**
@@ -91,7 +92,7 @@ export type ModalProps = {
 	 * This function is called to indicate that the modal should be closed.
 	 */
 	onRequestClose: (
-		event?: KeyboardEvent< HTMLDivElement > | FocusEvent
+		event?: KeyboardEvent< HTMLDivElement > | FocusEvent | SyntheticEvent
 	) => void;
 	/**
 	 * If this property is added, it will an additional class name to the modal

@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 /**
  * WordPress dependencies
  */
-import { useState } from '@wordpress/element';
+import { useState, useRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -16,6 +16,8 @@ import { useState } from '@wordpress/element';
 import Button from '../../button';
 import Modal from '../';
 import type { ModalProps } from '../types';
+import { Popover } from '../../popover';
+import { Provider as SlotFillProvider } from '../../slot-fill';
 
 const meta: ComponentMeta< typeof Modal > = {
 	component: Modal,
@@ -60,6 +62,42 @@ const IFrame: FC< { title?: string; width: number; height: number } > = ( {
 	);
 };
 
+const DropPop = () => {
+	const [ isVisible, setIsVisible ] = useState( false );
+	const toggleVisible = () => {
+		setIsVisible( ! isVisible );
+	};
+	const refButton = useRef();
+	return (
+		<>
+			<Button
+				variant="secondary"
+				onClick={ toggleVisible }
+				ref={ refButton }
+			>
+				Toggle Popover
+			</Button>
+			{ isVisible && (
+				<Popover
+					__unstableSlotName="popover"
+					focusOnMount={ false }
+					anchor={ refButton.current }
+					onFocusOutside={ () => {
+						setIsVisible( false );
+					} }
+				>
+					<div style={ { width: '10em', height: '5em' } }>
+						<p>We get signal!</p>
+						<label>
+							Someone set up us the bomb <input type="checkbox" />
+						</label>
+					</div>
+				</Popover>
+			) }
+		</>
+	);
+};
+
 const Template: ComponentStory< typeof Modal > = ( {
 	onRequestClose,
 	...args
@@ -72,7 +110,9 @@ const Template: ComponentStory< typeof Modal > = ( {
 	};
 
 	return (
-		<>
+		<SlotFillProvider>
+			{ /* @ts-expect-error Slot is not currently typed on Popover */ }
+			<Popover.Slot name="popover" />
 			<Button variant="secondary" onClick={ openModal }>
 				Open Modal
 			</Button>
@@ -94,6 +134,8 @@ const Template: ComponentStory< typeof Modal > = ( {
 						anim id est laborum.
 					</p>
 
+					<DropPop />
+
 					<button>Ciao</button>
 					<iframe
 						title="Example 1"
@@ -111,7 +153,7 @@ const Template: ComponentStory< typeof Modal > = ( {
 					</Button>
 				</Modal>
 			) }
-		</>
+		</SlotFillProvider>
 	);
 };
 

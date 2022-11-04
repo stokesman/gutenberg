@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { RefCallback } from 'react';
+import type { RefCallback, SyntheticEvent } from 'react';
 
 /**
  * WordPress dependencies
@@ -26,12 +26,16 @@ type DialogOptions = {
 	 *
 	 * @deprecated
 	 */
-	__unstableOnClose?: ( type: string | undefined, event: FocusEvent ) => void;
+	__unstableOnClose?: (
+		type: string | undefined,
+		event: Event | SyntheticEvent
+	) => void;
 };
 
 type useDialogReturn = [
 	RefCallback< HTMLElement >,
-	Pick< HTMLElement, 'tabIndex' >
+	Omit< ReturnType< typeof useFocusOutside >, 'ref' > &
+		Pick< HTMLElement, 'tabIndex' >
 ];
 
 /**
@@ -51,7 +55,7 @@ function useDialog( options: DialogOptions ): useDialogReturn {
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusOnMountRef = useFocusOnMount( options.focusOnMount );
 	const focusReturnRef = useFocusReturn();
-	const focusOutsideRef = useFocusOutside( ( event ) => {
+	const focusOutsideProps = useFocusOutside( ( event ) => {
 		// This unstable prop  is here only to manage backward compatibility
 		// for the Popover component otherwise, the onClose should be enough.
 		if ( currentOptions.current?.__unstableOnClose ) {
@@ -83,10 +87,11 @@ function useDialog( options: DialogOptions ): useDialogReturn {
 			options.focusOnMount !== false ? constrainedTabbingRef : null,
 			options.focusOnMount !== false ? focusReturnRef : null,
 			options.focusOnMount !== false ? focusOnMountRef : null,
-			focusOutsideRef,
+			focusOutsideProps.ref,
 			closeOnEscapeRef,
 		] ),
 		{
+			onBlur: focusOutsideProps.onBlur,
 			tabIndex: -1,
 		},
 	];

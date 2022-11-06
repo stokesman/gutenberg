@@ -298,3 +298,67 @@ export const WithSlotOutsideIframe: ComponentStory< typeof Popover > = (
 WithSlotOutsideIframe.args = {
 	...Default.args,
 };
+
+const ChainingPopover = ( args: PopoverProps ) => {
+	const [ isVisible, setIsVisible ] = useState( false );
+	const { colors, colorIndex } = ChainingPopover;
+	const refDepth = useRef( colorIndex );
+	const toggleVisible = () => {
+		setIsVisible( ! isVisible );
+		ChainingPopover.colorIndex += ! isVisible ? 1 : -1;
+	};
+	const buttonRef = useRef< HTMLButtonElement | undefined >();
+	return (
+		<div
+			style={ {
+				padding: '1em',
+				background: colors[ refDepth.current % colors.length ],
+			} }
+		>
+			<Button
+				variant="secondary"
+				onClick={ toggleVisible }
+				ref={ buttonRef }
+			>
+				Toggle Popover
+			</Button>
+			{ isVisible && (
+				<Popover
+					{ ...args }
+					__unstableSlotName={ ChainingPopover.slotName }
+					anchor={ buttonRef.current }
+					onFocusOutside={ () => {
+						setIsVisible( false );
+						ChainingPopover.colorIndex = refDepth.current;
+					} }
+				>
+					<ChainingPopover { ...args } />
+				</Popover>
+			) }
+		</div>
+	);
+};
+
+ChainingPopover.slotName = 'popover-chained';
+ChainingPopover.colorIndex = 0;
+ChainingPopover.colors = [
+	'mistyrose',
+	'papayawhip',
+	'cornsilk',
+	'honeydew',
+	'azure',
+	'lavender',
+	'lavenderblush',
+];
+
+export const Chained: ComponentStory< typeof Popover > = ( args ) => {
+	return (
+		<SlotFillProvider>
+			{ /* @ts-expect-error Slot is not currently typed on Popover */ }
+			<Popover.Slot name={ ChainingPopover.slotName } />
+			<ChainingPopover { ...args } />
+		</SlotFillProvider>
+	);
+};
+
+Chained.args = { ...Default.args };

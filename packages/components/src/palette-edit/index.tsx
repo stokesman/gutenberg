@@ -19,6 +19,7 @@ import { lineSolid, moreVertical, plus } from '@wordpress/icons';
 import {
 	__experimentalUseFocusOutside as useFocusOutside,
 	useDebounce,
+    useMergeRefs,
 } from '@wordpress/compose';
 
 /**
@@ -176,7 +177,8 @@ function Option< T extends Color | Gradient >( {
 	slugPrefix,
 	isGradient,
 }: OptionProps< T > ) {
-	const focusOutsideProps = useFocusOutside( onStopEditing );
+	const { ref: focusOutsideRef, ...focusOutsideProps } =
+		useFocusOutside( onStopEditing );
 	const value = isGradient ? element.gradient : element.color;
 
 	// Use internal state instead of a ref to make sure that the component
@@ -196,7 +198,7 @@ function Option< T extends Color | Gradient >( {
 			className={ isEditing ? 'is-selected' : undefined }
 			as="div"
 			onClick={ onStartEditing }
-			ref={ setPopoverAnchor }
+			ref={ useMergeRefs( [ setPopoverAnchor, focusOutsideRef ] ) }
 			{ ...( isEditing
 				? { ...focusOutsideProps }
 				: {

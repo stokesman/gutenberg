@@ -15,6 +15,7 @@ import {
 	useState,
 	forwardRef,
 	useLayoutEffect,
+	Children,
 } from '@wordpress/element';
 import {
 	useInstanceId,
@@ -77,7 +78,13 @@ function UnforwardedModal(
 	const focusOnMountRef = useFocusOnMount( focusOnMount );
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusReturnRef = useFocusReturn();
-	const focusOutsideProps = useFocusOutside( onRequestClose );
+
+	Children.forEach( children, ( child ) => {
+		if ( child instanceof Object && '$$typeof' in child )
+			console.log( 'modal child', child.$$typeof );
+		else console.log( 'modal child', child );
+	} );
+	const { ref: focusOutsideRef, ...focusOutsideProps } = useFocusOutside( onRequestClose );
 	const contentRef = useRef< HTMLDivElement >( null );
 	const childrenContainerRef = useRef< HTMLDivElement >( null );
 
@@ -194,13 +201,16 @@ function UnforwardedModal(
 						constrainedTabbingRef,
 						focusReturnRef,
 						focusOnMountRef,
+						focusOnMount && shouldCloseOnClickOutside
+							? focusOutsideRef
+							: null,
 					] ) }
 					role={ role }
 					aria-label={ contentLabel }
 					aria-labelledby={ contentLabel ? undefined : headingId }
 					aria-describedby={ aria.describedby }
 					tabIndex={ -1 }
-					{ ...( shouldCloseOnClickOutside
+					{ ...( focusOnMount && shouldCloseOnClickOutside
 						? focusOutsideProps
 						: {} ) }
 					onKeyDown={ onKeyDown }

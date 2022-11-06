@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { ForwardedRef, SyntheticEvent, RefCallback } from 'react';
+import type { ForwardedRef, SyntheticEvent, RefCallback, ReactNode } from 'react';
 import classnames from 'classnames';
 import {
 	useFloating,
@@ -319,7 +319,10 @@ const UnforwardedPopover = (
 	let onDialogClose;
 
 	if ( onClose || onFocusOutside ) {
-		onDialogClose = ( type: string | undefined, event: SyntheticEvent ) => {
+		onDialogClose = (
+			type: string | undefined,
+			event: SyntheticEvent | Event
+		) => {
 			// Ideally the popover should have just a single onClose prop and
 			// not three props that potentially do the same thing.
 			if ( type === 'focus-outside' && onFocusOutside ) {
@@ -593,13 +596,18 @@ function PopoverSlot(
 	ref: ForwardedRef< any >
 ) {
 	return (
+		// @ts-expect-error Need to type `SlotFill`
 		<Slot
-			// @ts-expect-error Need to type `SlotFill`
 			bubblesVirtually
 			name={ name }
 			className="popover-slot"
 			ref={ ref }
-		/>
+		>
+			{ ( fills: ReactNode ) => {
+				console.log( 'fills of popover slot', fills );
+				return fills;
+			} }
+		</Slot>
 	);
 }
 

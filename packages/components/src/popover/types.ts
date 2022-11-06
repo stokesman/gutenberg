@@ -88,7 +88,7 @@ export type PopoverProps = {
 	 *
 	 * When not provided, the `onClose` callback will be called instead.
 	 */
-	onFocusOutside?: ( event: SyntheticEvent ) => void;
+	onFocusOutside?: ( event: SyntheticEvent | Event ) => void;
 	/**
 	 * Used to customize the header text shown when the popover is toggled to
 	 * fullscreen on mobile viewports (see the `expandOnMobile` prop).

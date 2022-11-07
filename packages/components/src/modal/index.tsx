@@ -2,17 +2,15 @@
  * External dependencies
  */
 import classnames from 'classnames';
-import type { ForwardedRef, KeyboardEvent, UIEvent } from 'react';
+import type { ForwardedRef, KeyboardEvent } from 'react';
 
 /**
  * WordPress dependencies
  */
 import {
 	createPortal,
-	useCallback,
 	useEffect,
 	useRef,
-	useState,
 	forwardRef,
 } from '@wordpress/element';
 import {
@@ -22,6 +20,7 @@ import {
 	__experimentalUseFocusOutside as useFocusOutside,
 	useConstrainedTabbing,
 	useMergeRefs,
+	useRefEffect,
 } from '@wordpress/compose';
 import { __ } from '@wordpress/i18n';
 import { close } from '@wordpress/icons';
@@ -77,8 +76,6 @@ function UnforwardedModal(
 	const focusReturnRef = useFocusReturn();
 	const focusOutsideProps = useFocusOutside( onRequestClose );
 
-	const [ hasScrolledContent, setHasScrolledContent ] = useState( false );
-
 	useEffect( () => {
 		openModalCount++;
 
@@ -97,6 +94,20 @@ function UnforwardedModal(
 		};
 	}, [ bodyOpenClassName ] );
 
+	// Toggles class to denote whether the content element has scrolled.
+	const refContentObserver = useRefEffect< HTMLDivElement >( ( node ) => {
+		const doc = node.ownerDocument;
+		const topMarker = doc.createElement( 'div' );
+		node.prepend( topMarker );
+		const observer = new IntersectionObserver(
+			( [ { isIntersecting: isAtTop } ] ) =>
+				node.classList.toggle( 'has-scrolled-content', ! isAtTop ),
+			{ root: node }
+		);
+		observer.observe( topMarker );
+		return () => observer.disconnect();
+	}, [] );
+
 	function handleEscapeKeyDown( event: KeyboardEvent< HTMLDivElement > ) {
 		if (
 			shouldCloseOnEsc &&
@@ -109,19 +120,6 @@ function UnforwardedModal(
 			}
 		}
 	}
-
-	const onContentContainerScroll = useCallback(
-		( e: UIEvent< HTMLDivElement > ) => {
-			const scrollY = e?.currentTarget?.scrollTop ?? -1;
-
-			if ( ! hasScrolledContent && scrollY > 0 ) {
-				setHasScrolledContent( true );
-			} else if ( hasScrolledContent && scrollY <= 0 ) {
-				setHasScrolledContent( false );
-			}
-		},
-		[ hasScrolledContent ]
-	);
 
 	return createPortal(
 		// eslint-disable-next-line jsx-a11y/no-static-element-interactions
@@ -161,10 +159,9 @@ function UnforwardedModal(
 					<div
 						className={ classnames( 'components-modal__content', {
 							'hide-header': __experimentalHideHeader,
-							'has-scrolled-content': hasScrolledContent,
 						} ) }
 						role="document"
-						onScroll={ onContentContainerScroll }
+						ref={ refContentObserver }
 					>
 						{ ! __experimentalHideHeader && (
 							<div className="components-modal__header">

@@ -8,7 +8,7 @@ import classnames from 'classnames';
  * WordPress dependencies
  */
 import deprecated from '@wordpress/deprecated';
-import { forwardRef } from '@wordpress/element';
+import { forwardRef, useRef } from '@wordpress/element';
 import { isRTL, __ } from '@wordpress/i18n';
 
 /**
@@ -66,6 +66,8 @@ function UnforwardedAnglePickerControl(
 		? [ unitText, null ]
 		: [ null, unitText ];
 
+	const refNumberInput = useRef< HTMLInputElement >();
+
 	return (
 		<Root
 			{ ...restProps }
@@ -87,10 +89,12 @@ function UnforwardedAnglePickerControl(
 					spinControls="none"
 					prefix={ prefixedUnitText }
 					suffix={ suffixedUnitText }
+					ref={ refNumberInput }
 				/>
 			</FlexBlock>
 			<Spacer marginBottom="1" marginTop="auto">
 				<AngleCircle
+					onPointerDown={ () => refNumberInput.current?.focus() }
 					aria-hidden="true"
 					value={ value }
 					onChange={ onChange }

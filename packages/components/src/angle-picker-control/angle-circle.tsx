@@ -25,6 +25,7 @@ type UseDraggingCallbackEvent =
 function AngleCircle( {
 	value,
 	onChange,
+	onDragStart,
 	...props
 }: WordPressComponentProps< AngleCircleProps, 'div' > ) {
 	const angleCircleRef = useRef< HTMLDivElement | null >( null );

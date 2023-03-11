@@ -25,6 +25,7 @@ type UseDraggingCallbackEvent =
 function AngleCircle( {
 	value,
 	onChange,
+	refNumberInput,
 	...props
 }: WordPressComponentProps< AngleCircleProps, 'div' > ) {
 	const angleCircleRef = useRef< HTMLDivElement | null >( null );
@@ -65,6 +66,10 @@ function AngleCircle( {
 
 	const { startDrag, isDragging } = useDragging( {
 		onDragStart: ( event ) => {
+			const { currentTarget } = event;
+			if ( currentTarget !== currentTarget.ownerDocument.activeElement ) {
+				refNumberInput.current?.focus();
+			}
 			setAngleCircleCenter();
 			changeAngleToPosition( event );
 		},

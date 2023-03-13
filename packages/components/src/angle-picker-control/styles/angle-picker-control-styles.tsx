@@ -50,10 +50,6 @@ export const CircleRoot = styled.div`
 	overflow: hidden;
 	width: ${ CIRCLE_SIZE }px;
 	margin-inline-end: ${ space( 1 ) };
-
-	:active {
-		cursor: grabbing;
-	}
 `;
 
 export const CircleIndicatorWrapper = styled.div`

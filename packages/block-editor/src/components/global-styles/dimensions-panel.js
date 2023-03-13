@@ -274,7 +274,7 @@ export default function DimensionsPanel( {
 		!! value?.spacing?.padding &&
 		Object.keys( value?.spacing?.padding ).length;
 	const resetPaddingValue = () => setPaddingValues( undefined );
-	const onMouseOverPadding = () => onVisualize( 'padding' );
+	const onMouseEnterPadding = () => onVisualize( 'padding' );
 
 	// Margin
 	const showMarginControl = useHasMargin( settings );
@@ -300,7 +300,10 @@ export default function DimensionsPanel( {
 		!! value?.spacing?.margin &&
 		Object.keys( value?.spacing?.margin ).length;
 	const resetMarginValue = () => setMarginValues( undefined );
-	const onMouseOverMargin = () => onVisualize( 'margin' );
+	const onMouseEnterMargin = () => {
+		console.log('visualize it ')
+		onVisualize( 'margin' );
+	}
 
 	// Block Gap
 	const showGapControl = useHasGap( settings );
@@ -400,7 +403,10 @@ export default function DimensionsPanel( {
 		};
 	}, [] );
 
-	const onMouseLeaveControls = () => onVisualize( false );
+	const onMouseLeaveControls = () => {
+		onVisualize( false );
+		console.log('mouse leave controls')
+	}
 
 	return (
 		<Wrapper
@@ -486,8 +492,8 @@ export default function DimensionsPanel( {
 							units={ units }
 							allowReset={ false }
 							splitOnAxis={ isAxialPadding }
-							onMouseOver={ onMouseOverPadding }
-							onMouseOut={ onMouseLeaveControls }
+							onMouseEnter={ onMouseEnterPadding }
+							onMouseLeave={ onMouseLeaveControls }
 						/>
 					) }
 					{ showSpacingPresetsControl && (
@@ -499,8 +505,8 @@ export default function DimensionsPanel( {
 							units={ units }
 							allowReset={ false }
 							splitOnAxis={ isAxialPadding }
-							onMouseOver={ onMouseOverPadding }
-							onMouseOut={ onMouseLeaveControls }
+							onMouseEnter={ onMouseEnterPadding }
+							onMouseLeave={ onMouseLeaveControls }
 						/>
 					) }
 				</ToolsPanelItem>
@@ -525,8 +531,8 @@ export default function DimensionsPanel( {
 							units={ units }
 							allowReset={ false }
 							splitOnAxis={ isAxialMargin }
-							onMouseOver={ onMouseOverMargin }
-							onMouseOut={ onMouseLeaveControls }
+							onMouseEnter={ onMouseEnterMargin }
+							onMouseLeave={ onMouseLeaveControls }
 						/>
 					) }
 					{ showSpacingPresetsControl && (
@@ -538,8 +544,8 @@ export default function DimensionsPanel( {
 							units={ units }
 							allowReset={ false }
 							splitOnAxis={ isAxialMargin }
-							onMouseOver={ onMouseOverMargin }
-							onMouseOut={ onMouseLeaveControls }
+							onMouseEnter={ onMouseEnterMargin }
+							onMouseLeave={ onMouseLeaveControls }
 						/>
 					) }
 				</ToolsPanelItem>

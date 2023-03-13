@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { useEffect, useRef } from '@wordpress/element';
+import { useRef } from '@wordpress/element';
 import { __experimentalUseDragging as useDragging } from '@wordpress/compose';
 
 /**
@@ -12,6 +12,7 @@ import {
 	CircleIndicatorWrapper,
 	CircleIndicator,
 } from './styles/angle-picker-control-styles';
+import { GestureInsulator } from '../gesture-insulator';
 
 import type { WordPressComponentProps } from '../ui/context';
 import type { AngleCircleProps } from './types';
@@ -30,7 +31,6 @@ function AngleCircle( {
 }: WordPressComponentProps< AngleCircleProps, 'div' > ) {
 	const angleCircleRef = useRef< HTMLDivElement | null >( null );
 	const angleCircleCenter = useRef< { x: number; y: number } | undefined >();
-	const previousCursorValue = useRef< CSSStyleDeclaration[ 'cursor' ] >();
 
 	const setAngleCircleCenter = () => {
 		if ( angleCircleRef.current === null ) {
@@ -48,11 +48,6 @@ function AngleCircle( {
 		if ( event === undefined ) {
 			return;
 		}
-
-		// Prevent (drag) mouse events from selecting and accidentally
-		// triggering actions from other elements.
-		event.preventDefault();
-
 		if (
 			angleCircleCenter.current !== undefined &&
 			onChange !== undefined
@@ -66,28 +61,17 @@ function AngleCircle( {
 
 	const { startDrag, isDragging } = useDragging( {
 		onDragStart: ( event ) => {
-			const { currentTarget } = event;
-			if ( currentTarget !== currentTarget.ownerDocument.activeElement ) {
-				refNumberInput.current?.focus();
-			}
+			const { current: numberInput } = refNumberInput;
 			setAngleCircleCenter();
 			changeAngleToPosition( event );
+			// Preventing default allows the manual move of focus.
+			event.preventDefault();
+			if ( numberInput !== numberInput?.ownerDocument.activeElement )
+				refNumberInput.current?.focus();
 		},
 		onDragMove: changeAngleToPosition,
 		onDragEnd: changeAngleToPosition,
 	} );
-
-	useEffect( () => {
-		if ( isDragging ) {
-			if ( previousCursorValue.current === undefined ) {
-				previousCursorValue.current = document.body.style.cursor;
-			}
-			document.body.style.cursor = 'grabbing';
-		} else {
-			document.body.style.cursor = previousCursorValue.current || '';
-			previousCursorValue.current = undefined;
-		}
-	}, [ isDragging ] );
 
 	return (
 		<CircleRoot
@@ -104,6 +88,7 @@ function AngleCircle( {
 			>
 				<CircleIndicator className="components-angle-picker-control__angle-circle-indicator" />
 			</CircleIndicatorWrapper>
+			<GestureInsulator isPresent={ isDragging } cursor="grabbing" />
 		</CircleRoot>
 	);
 }

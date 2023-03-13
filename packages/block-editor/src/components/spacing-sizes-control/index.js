@@ -31,6 +31,8 @@ export default function SpacingSizesControl( {
 	minimumCustomValue = 0,
 	onMouseOver,
 	onMouseOut,
+	onMouseEnter,
+	onMouseLeave,
 } ) {
 	const spacingSizes = [
 		{ name: 0, slug: '0', size: 0 },
@@ -81,6 +83,7 @@ export default function SpacingSizesControl( {
 			className={ classnames( 'component-spacing-sizes-control', {
 				'is-unlinked': ! isLinked,
 			} ) }
+			{ ...{ onMouseEnter, onMouseLeave } }
 		>
 			<BaseControl.VisualLabel as="legend">
 				{ label }

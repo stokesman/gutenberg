@@ -20,10 +20,11 @@ import { forwardRef, useRef } from '@wordpress/element';
  * Internal dependencies
  */
 import type { WordPressComponentProps } from '../ui/context';
-import { useDragCursor } from './utils';
+import { getDragCursor } from './utils';
 import { Input } from './styles/input-control-styles';
 import { useInputControlStateReducer } from './reducer/reducer';
 import type { InputFieldProps } from './types';
+import { GestureInsulator } from '../gesture-insulator';
 
 const noop = () => {};
 
@@ -80,7 +81,7 @@ function InputField(
 	const { value, isDragging, isDirty } = state;
 	const wasDirtyOnBlur = useRef( false );
 
-	const dragCursor = useDragCursor( isDragging, dragDirection );
+	const dragCursor = getDragCursor( dragDirection );
 
 	const handleOnBlur = ( event: FocusEvent< HTMLInputElement > ) => {
 		onBlur( event );
@@ -150,7 +151,7 @@ function InputField(
 
 	const dragGestureProps = useDrag< PointerEvent< HTMLInputElement > >(
 		( dragProps ) => {
-			const { distance, dragging, event, target } = dragProps;
+			const { distance, dragging, target } = dragProps;
 
 			// The `target` prop always references the `input` element while, by
 			// default, the `dragProps.event.target` property would reference the real
@@ -164,7 +165,6 @@ function InputField(
 			};
 
 			if ( ! distance ) return;
-			event.stopPropagation();
 
 			/**
 			 * Quick return if no longer dragging.
@@ -211,26 +211,28 @@ function InputField(
 	}
 
 	return (
-		<Input
-			{ ...props }
-			{ ...dragProps }
-			className="components-input-control__input"
-			disabled={ disabled }
-			dragCursor={ dragCursor }
-			isDragging={ isDragging }
-			id={ id }
-			onBlur={ handleOnBlur }
-			onChange={ handleOnChange }
-			onFocus={ handleOnFocus }
-			onKeyDown={ handleOnKeyDown }
-			onMouseDown={ handleOnMouseDown }
-			ref={ ref }
-			inputSize={ size }
-			// Fallback to `''` to avoid "uncontrolled to controlled" warning.
-			// See https://github.com/WordPress/gutenberg/pull/47250 for details.
-			value={ value ?? '' }
-			type={ type }
-		/>
+		<>
+			<Input
+				{ ...props }
+				{ ...dragProps }
+				className="components-input-control__input"
+				disabled={ disabled }
+				isDragging={ isDragging }
+				id={ id }
+				onBlur={ handleOnBlur }
+				onChange={ handleOnChange }
+				onFocus={ handleOnFocus }
+				onKeyDown={ handleOnKeyDown }
+				onMouseDown={ handleOnMouseDown }
+				ref={ ref }
+				inputSize={ size }
+				// Fallback to `''` to avoid "uncontrolled to controlled" warning.
+				// See https://github.com/WordPress/gutenberg/pull/47250 for details.
+				value={ value ?? '' }
+				type={ type }
+			/>
+			<GestureInsulator isPresent={ isDragging } cursor={ dragCursor } />
+		</>
 	);
 }
 

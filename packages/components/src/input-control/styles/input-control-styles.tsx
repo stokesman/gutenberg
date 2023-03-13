@@ -83,7 +83,6 @@ type InputProps = {
 	disabled?: boolean;
 	inputSize?: Size;
 	isDragging?: boolean;
-	dragCursor?: CSSProperties[ 'cursor' ];
 	paddingInlineStart?: CSSProperties[ 'paddingInlineStart' ];
 	paddingInlineEnd?: CSSProperties[ 'paddingInlineEnd' ];
 };
@@ -170,13 +169,11 @@ const customPaddings = ( {
 	return css( { paddingInlineStart, paddingInlineEnd } );
 };
 
-const dragStyles = ( { isDragging, dragCursor }: InputProps ) => {
+const dragStyles = ( { isDragging }: InputProps ) => {
 	let defaultArrowStyles: SerializedStyles | undefined;
-	let activeDragCursorStyles: SerializedStyles | undefined;
 
 	if ( isDragging ) {
 		defaultArrowStyles = css`
-			cursor: ${ dragCursor };
 			user-select: none;
 
 			&::-webkit-outer-spin-button,
@@ -187,17 +184,8 @@ const dragStyles = ( { isDragging, dragCursor }: InputProps ) => {
 		`;
 	}
 
-	if ( isDragging && dragCursor ) {
-		activeDragCursorStyles = css`
-			&:active {
-				cursor: ${ dragCursor };
-			}
-		`;
-	}
-
 	return css`
 		${ defaultArrowStyles }
-		${ activeDragCursorStyles }
 	`;
 };
 

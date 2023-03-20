@@ -13,8 +13,11 @@ import {
 	getSpacingPresetCssVar,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
-import { ResizableBox } from '@wordpress/components';
-import { useState, useEffect } from '@wordpress/element';
+import {
+	ResizableBox,
+	__experimentalParseQuantityAndUnitFromRawValue as parseQuantityAndUnitFromRawValue,
+} from '@wordpress/components';
+import { useState, useEffect, useMemo, useRef } from '@wordpress/element';
 import { View } from '@wordpress/primitives';
 import { useSelect } from '@wordpress/data';
 
@@ -40,10 +43,6 @@ const ResizableSpacer = ( {
 			: elt.clientHeight;
 	};
 
-	const getNextVal = ( elt ) => {
-		return `${ getCurrentSize( elt ) }px`;
-	};
-
 	return (
 		<ResizableBox
 			className={ classnames( 'block-library-spacer__resize-container', {
@@ -52,19 +51,18 @@ const ResizableSpacer = ( {
 				'is-selected': isSelected,
 			} ) }
 			onResizeStart={ ( _event, _direction, elt ) => {
-				const nextVal = getNextVal( elt );
+				const nextVal = getCurrentSize( elt );
 				onResizeStart( nextVal );
 				onResize( nextVal );
 			} }
 			onResize={ ( _event, _direction, elt ) => {
-				onResize( getNextVal( elt ) );
+				onResize( getCurrentSize( elt ) );
 				if ( ! isResizing ) {
 					setIsResizing( true );
 				}
 			} }
 			onResizeStop={ ( _event, _direction, elt ) => {
-				const nextVal = getCurrentSize( elt );
-				onResizeStop( `${ nextVal }px` );
+				onResizeStop( getCurrentSize( elt ) );
 				setIsResizing( false );
 			} }
 			__experimentalShowTooltip={ true }
@@ -102,6 +100,8 @@ const SpacerEdit = ( {
 		! parentOrientation && isFlexLayout
 			? 'horizontal'
 			: parentOrientation || orientation;
+	const usedOrientation = orientation || inheritedOrientation || 'vertical';
+
 	const { height, width, style: blockStyle = {} } = attributes;
 
 	const { layout = {} } = blockStyle;
@@ -113,46 +113,98 @@ const SpacerEdit = ( {
 	const [ temporaryHeight, setTemporaryHeight ] = useState( null );
 	const [ temporaryWidth, setTemporaryWidth ] = useState( null );
 
+	const flowedSize =
+		! isFlexLayout && usedOrientation === 'horizontal' ? width : height;
+	const [ , parsedUnit ] = parseQuantityAndUnitFromRawValue(
+		flexSize || flowedSize
+	);
+
+	const refBlockElement = useRef();
+	const pxPerUnit = useRef();
+
+	// Calculates the pixels per unit when the unit has changed.
+	useEffect( () => {
+		if ( parsedUnit === 'px' ) return;
+
+		const blockEl = refBlockElement.current;
+		const side = usedOrientation === 'horizontal' ? 'width' : 'height';
+		const styleKey = isFlexLayout ? 'flexBasis' : side;
+		const styledSize = blockEl.style[ styleKey ];
+		// In the interest of precision, before reading the computed height the
+		// styled height set to 1 in the current unit.
+		blockEl.style[ styleKey ] = `1${ parsedUnit }`;
+		let measuredSize;
+		if ( parsedUnit === '%' )
+			measuredSize = blockEl.getBoundingClientRect()[ side ];
+		else
+			( { [ styleKey ]: measuredSize } =
+				blockEl.ownerDocument.defaultView.getComputedStyle( blockEl ) );
+		pxPerUnit.current = parseFloat( measuredSize );
+		console.log('-- - - ', { styleKey, styledSize, measuredSize })
+		blockEl.style[ styleKey ] = styledSize;
+	}, [ parsedUnit, usedOrientation, isFlexLayout ] );
+
+	const onResize = useMemo( () => {
+		const setter =
+			( orientation || inheritedOrientation ) === 'vertical'
+				? setTemporaryWidth
+				: setTemporaryHeight;
+		return parsedUnit === 'px'
+			? ( v ) => setter( v + 'px' )
+			: ( sizeValue ) => {
+					console.log('setting temporary', sizeValue, pxPerUnit.current, parsedUnit )
+					setter( sizeValue / pxPerUnit.current + parsedUnit );
+			  };
+	}, [ inheritedOrientation, orientation, parsedUnit ] );
+
 	const onResizeStart = () => toggleSelection( false );
 	const onResizeStop = () => toggleSelection( true );
 
 	const handleOnVerticalResizeStop = ( newHeight ) => {
 		onResizeStop();
 
+		const heightInUnit = `${
+			newHeight / ( pxPerUnit.current ?? 1 )
+		}${ parsedUnit }`;
+
 		if ( isFlexLayout ) {
 			setAttributes( {
 				style: {
 					...blockStyle,
 					layout: {
 						...layout,
-						flexSize: newHeight,
+						flexSize: heightInUnit,
 						selfStretch: 'fixed',
 					},
 				},
 			} );
 		}
 
-		setAttributes( { height: newHeight } );
+		setAttributes( { height: heightInUnit } );
 		setTemporaryHeight( null );
 	};
 
 	const handleOnHorizontalResizeStop = ( newWidth ) => {
 		onResizeStop();
 
+		const widthInUnit = `${
+			newWidth / ( pxPerUnit.current ?? 1 )
+		}${ parsedUnit }`;
+
 		if ( isFlexLayout ) {
 			setAttributes( {
 				style: {
 					...blockStyle,
 					layout: {
 						...layout,
-						flexSize: newWidth,
+						flexSize: widthInUnit,
 						selfStretch: 'fixed',
 					},
 				},
 			} );
 		}
 
-		setAttributes( { width: newWidth } );
+		setAttributes( { width: widthInUnit } );
 		setTemporaryWidth( null );
 	};
 
@@ -212,7 +264,7 @@ const SpacerEdit = ( {
 					} }
 					orientation={ blockOrientation }
 					onResizeStart={ onResizeStart }
-					onResize={ setTemporaryWidth }
+					onResize={ onResize }
 					onResizeStop={ handleOnHorizontalResizeStop }
 					isSelected={ isSelected }
 					isResizing={ isResizing }
@@ -237,7 +289,7 @@ const SpacerEdit = ( {
 					} }
 					orientation={ blockOrientation }
 					onResizeStart={ onResizeStart }
-					onResize={ setTemporaryHeight }
+					onResize={ onResize }
 					onResizeStop={ handleOnVerticalResizeStop }
 					isSelected={ isSelected }
 					isResizing={ isResizing }
@@ -344,6 +396,7 @@ const SpacerEdit = ( {
 					className: classnames( className, {
 						'custom-sizes-disabled': disableCustomSpacingSizes,
 					} ),
+					ref: refBlockElement,
 				} ) }
 			>
 				{ resizableBoxWithOrientation( inheritedOrientation ) }
@@ -354,7 +407,6 @@ const SpacerEdit = ( {
 					height={ temporaryHeight || height }
 					width={ temporaryWidth || width }
 					orientation={ inheritedOrientation }
-					isResizing={ isResizing }
 				/>
 			) }
 		</>

@@ -185,7 +185,7 @@ interface GetSizeLabelArgs {
  *
  * @return The rendered label.
  */
-function getSizeLabel( {
+export function getSizeLabel( {
 	axis,
 	height,
 	moveX = false,

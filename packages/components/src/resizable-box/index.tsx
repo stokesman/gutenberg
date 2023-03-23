@@ -1,20 +1,20 @@
 /**
  * WordPress dependencies
  */
-import { forwardRef } from '@wordpress/element';
+import { forwardRef, useCallback, useRef, useState } from '@wordpress/element';
 
 /**
  * External dependencies
  */
 import classnames from 'classnames';
-import { Resizable } from 're-resizable';
+import { Resizable, ResizeCallback } from 're-resizable';
 import type { ResizableProps } from 're-resizable';
 import type { ReactNode, ForwardedRef } from 'react';
 
 /**
  * Internal dependencies
  */
-import ResizeTooltip from './resize-tooltip';
+import ResizeTooltip, { ResizeTooltipProps } from './resize-tooltip';
 
 const HANDLE_CLASS_NAME = 'components-resizable-box__handle';
 const SIDE_HANDLE_CLASS_NAME = 'components-resizable-box__side-handle';
@@ -105,6 +105,31 @@ function UnforwardedResizableBox(
 	}: ResizableBoxProps,
 	ref: ForwardedRef< Resizable >
 ): JSX.Element {
+	const startSize = useRef< [ number, number ] >();
+	const updateSize = useCallback(
+		( delta: Parameters< ResizeCallback >[ 3 ] ) => {
+			const [ width, height ] = startSize.current!;
+			setSize( [ width + delta.width, height + delta.height ] );
+		},
+		[]
+	);
+	const [ size, setSize ] = useState< ResizeTooltipProps[ 'size' ] >();
+	tooltipProps.size = size;
+
+	const { onResize, onResizeStart, onResizeStop } = props;
+	props.onResizeStart = ( e, direction, el ) => {
+		onResizeStart?.( e, direction, el );
+		startSize.current = [ el.clientWidth, el.clientHeight ];
+	};
+	props.onResize = ( e, direction, el, delta ) => {
+		onResize?.( e, direction, el, delta );
+		updateSize( delta );
+	};
+	props.onResizeStop = ( e, direction, el, delta ) => {
+		onResizeStop?.( e, direction, el, delta );
+		updateSize( delta );
+	};
+
 	return (
 		<Resizable
 			className={ classnames(

@@ -26,24 +26,27 @@ type LabelProps = React.DetailedHTMLProps<
 	React.HTMLAttributes< HTMLDivElement >,
 	HTMLDivElement
 > & {
+	isVisible: boolean;
 	label?: string;
 	position: Position;
 	zIndex: number;
 };
 
 function Label(
-	{ label, position = POSITIONS.corner, zIndex = 1000, ...props }: LabelProps,
+	{
+		isVisible,
+		label,
+		position = POSITIONS.corner,
+		zIndex = 1000,
+		...props
+	}: LabelProps,
 	ref: ForwardedRef< HTMLDivElement >
 ): JSX.Element | null {
-	const showLabel = !! label;
-
 	const isBottom = position === POSITIONS.bottom;
 	const isCorner = position === POSITIONS.corner;
 
-	if ( ! showLabel ) return null;
-
 	let style: React.CSSProperties = {
-		opacity: showLabel ? 1 : undefined,
+		opacity: isVisible && label !== '' ? 1 : 0,
 		zIndex,
 	};
 

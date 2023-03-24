@@ -1,25 +1,36 @@
 # ResizeTooltip
 
-ResizeTooltip displays the dimensions of an element whenever the width or height of the element changes.
+ResizeTooltip displays dimensions. It’s positioned relative to its container.
 
 ## Usage
 
 ```jsx
+import { useState } from '@wordpress/element';
+import { useRefEffect } from '@wordpress/compose';
+
 const Example = () => {
+	const [ size, setSize ] = useState();
+	const observeSize = useRefEffect( ( node ) => {
+		const observer = new ResizeObserver(
+			( [ { borderBoxSize: [ { inlineSize, blockSize } ] } ] ) => {
+				setSize( [ inlineSize, blockSize ] );
+			}
+		)
+		observer.observe( node );
+		return () => observer.disconnect();
+	}, [] )
 	return (
-		<div style={ { position: 'relative' } }>
-			<ResizeTooltip />
+		<div ref={ observeSize } style={ { position: 'relative' } }>
+			<ResizeTooltip size={ size } />
 			...
 		</div>
 	);
 };
 ```
 
-Be sure that the parent element containing `<ResizeTooltip />` has the `position` style property defined. This is important as `<ResizeTooltip />` uses `position` based techniques to determine size changes.
-
 ### Positions
 
-`<ResizeTooltip />` has three positions;
+`<ResizeTooltip />` has two positions;
 
 -   `bottom` (Default)
 -   `corner`
@@ -30,7 +41,7 @@ The `bottom` position (default) renders the dimensions label at the bottom-cente
 
 ##### `corner`
 
-The `corner` position renders the dimensions label in the top-right corner of the (parent) element.
+The `corner` position renders the dimensions label in the top-right corner of the (parent) element. For this position to work, be sure that the parent element containing `<ResizeTooltip />` is styled to create a block formatting context. Most commonly done by setting the `position` style property to `relative|absolute|fixed|sticky`.
 
 ## Props
 
@@ -44,7 +55,7 @@ Limits the label to render corresponding to the axis. By default, the label will
 
 ### fadeTimeout
 
-Duration (in `ms`) before the label disappears after resize event.
+Duration (in `ms`) before the label transitions out after resize event. Applicable only if `isVisible` is unset.
 
 -   Type: `Number`
 -   Required: No
@@ -52,11 +63,11 @@ Duration (in `ms`) before the label disappears after resize event.
 
 ### isVisible
 
-Determines if the label can render.
+Determines whether or not the label is shown.
 
 -   Type: `Boolean`
 -   Required: No
--   Default: `true`
+-   Default: `undefined`
 
 ### labelRef
 
@@ -65,23 +76,9 @@ Callback [Ref](https://reactjs.org/docs/forwarding-refs.html) for the label elem
 -   Type: `Function`
 -   Required: No
 
-### onMove
-
-Callback function when the (observed) element resizes, specifically with a `mousemove` based event.
-
--   Type: `Function`
--   Required: No
-
-### onResize
-
-Callback function when the (observed) element resizes.
-
--   Type: `Function`
--   Required: No
-
 ### position
 
-The positions for the label.
+The position for the label.
 
 -   Type: `String`
 -   Required: No
@@ -90,7 +87,7 @@ The positions for the label.
 
 ### showPx
 
-Renders a `PX` unit suffix after the width or height value in the label.
+Renders a `px` unit suffix after the width or height value in the label. Not applicable when position is `corner`
 
 -   Type: `Boolean`
 -   Required: No

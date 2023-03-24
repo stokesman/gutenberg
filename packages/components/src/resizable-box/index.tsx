@@ -1,14 +1,14 @@
 /**
  * WordPress dependencies
  */
-import { forwardRef, useCallback, useRef, useState } from '@wordpress/element';
+import { forwardRef, useCallback, useState } from '@wordpress/element';
 
 /**
  * External dependencies
  */
 import classnames from 'classnames';
-import { Resizable, ResizeCallback } from 're-resizable';
-import type { ResizableProps } from 're-resizable';
+import { Resizable } from 're-resizable';
+import type { ResizableProps, ResizeCallback } from 're-resizable';
 import type { ReactNode, ForwardedRef } from 'react';
 
 /**
@@ -91,7 +91,10 @@ type ResizableBoxProps = ResizableProps & {
 	children: ReactNode;
 	showHandle?: boolean;
 	__experimentalShowTooltip?: boolean;
-	__experimentalTooltipProps?: Parameters< typeof ResizeTooltip >[ 0 ];
+	__experimentalTooltipProps?: Omit<
+		Parameters< typeof ResizeTooltip >[ 0 ],
+		'size'
+	>;
 };
 
 function UnforwardedResizableBox(
@@ -105,21 +108,26 @@ function UnforwardedResizableBox(
 	}: ResizableBoxProps,
 	ref: ForwardedRef< Resizable >
 ): JSX.Element {
-	const startSize = useRef< [ number, number ] >();
+	const [ startSize, setStartSize ] =
+		useState< ResizeTooltipProps[ 'size' ] >();
+	const [ size, setSize ] = useState< typeof startSize >();
 	const updateSize = useCallback(
 		( delta: Parameters< ResizeCallback >[ 3 ] ) => {
-			const [ width, height ] = startSize.current!;
-			setSize( [ width + delta.width, height + delta.height ] );
+			const [ width, height ] = startSize!;
+			setSize( [ width! + delta.width, height! + delta.height ] );
 		},
-		[]
+		[ startSize ]
 	);
-	const [ size, setSize ] = useState< ResizeTooltipProps[ 'size' ] >();
-	tooltipProps.size = size;
 
 	const { onResize, onResizeStart, onResizeStop } = props;
 	props.onResizeStart = ( e, direction, el ) => {
 		onResizeStart?.( e, direction, el );
-		startSize.current = [ el.clientWidth, el.clientHeight ];
+		const sizeAtStart: typeof startSize = [
+			el.clientWidth,
+			el.clientHeight,
+		];
+		setStartSize( sizeAtStart );
+		setSize( sizeAtStart );
 	};
 	props.onResize = ( e, direction, el, delta ) => {
 		onResize?.( e, direction, el, delta );
@@ -143,7 +151,18 @@ function UnforwardedResizableBox(
 			{ ...props }
 		>
 			{ children }
-			{ showTooltip && <ResizeTooltip { ...tooltipProps } /> }
+			{ showTooltip && (
+				<ResizeTooltip
+					// The key ensures state tracking size is reset each time a resize operation
+					// starts. Without it a resize in one dimension may be detected as both
+					// dimensions because the tracked size wasn't synced. For such a case to present
+					// the size has to have changed externally, `axis` has to be unset and `position`
+					// has to be `bottom`.
+					key={ startSize?.join( ',' ) || '' }
+					size={ size }
+					{ ...tooltipProps }
+				/>
+			) }
 		</Resizable>
 	);
 }

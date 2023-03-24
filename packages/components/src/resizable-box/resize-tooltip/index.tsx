@@ -7,15 +7,14 @@ import type { Ref, ForwardedRef } from 'react';
 /**
  * WordPress dependencies
  */
-import { forwardRef, useEffect, useRef, useState } from '@wordpress/element';
+import { forwardRef, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
 import Label from './label';
-import { getSizeLabel, useResizeLabel, Axis, Position, POSITIONS } from './utils';
+import { getSizeLabel, Axis, Position, POSITIONS, useIsIdle } from './utils';
 import { Root } from './styles/resize-tooltip.styles';
-import { useUpdateEffect } from '../../utils';
 
 export type ResizeTooltipProps = React.ComponentProps< typeof Root > & {
 	'aria-hidden'?: boolean;
@@ -24,23 +23,19 @@ export type ResizeTooltipProps = React.ComponentProps< typeof Root > & {
 	fadeTimeout?: number;
 	isVisible?: boolean;
 	labelRef?: Ref< HTMLDivElement >;
-	onResize?: Parameters< typeof useResizeLabel >[ 0 ][ 'onResize' ];
 	position?: Position;
 	showPx?: boolean;
 	size?: [ number, number ];
 	zIndex?: number;
 };
 
-const noop = () => {};
-
 function ResizeTooltip(
 	{
 		axis,
 		className,
-		fadeTimeout = 180,
-		isVisible = true,
+		fadeTimeout = 280,
+		isVisible,
 		labelRef,
-		onResize = noop,
 		position = POSITIONS.bottom,
 		showPx = true,
 		size: [ width, height ] = [ 0, 0 ],
@@ -49,54 +44,32 @@ function ResizeTooltip(
 	}: ResizeTooltipProps,
 	ref: ForwardedRef< HTMLDivElement >
 ): JSX.Element | null {
-	const { label, resizeListener } = useResizeLabel( {
+	const moveX = ! useIsIdle( width, fadeTimeout );
+	const moveY = ! useIsIdle( height, fadeTimeout );
+
+	const [ [ prevLabel ], setPrevLabel ] = useState( [ '' ] );
+
+	const label = getSizeLabel( {
 		axis,
-		fadeTimeout,
-		onResize,
-		showPx,
+		height,
+		moveX,
+		moveY,
 		position,
+		showPx,
+		width,
 	} );
 
-	const refIdleTimeout = useRef< number >();
-	const [ isIdle, setIsIdle ] = useState( true );
-	useUpdateEffect( () => {
-		setIsIdle( false );
-		clearTimeout( refIdleTimeout.current );
-		refIdleTimeout.current = window.setTimeout( () => {
-			if ( ! isVisible ) setIsIdle( true );
-		}, fadeTimeout );
-	}, [ fadeTimeout, width, height ] );
-
-	// TODO try moving to after the early return once logging is removed.
-	let label2: string | undefined;
-	if ( ! isIdle && isVisible )
-		label2 = getSizeLabel( {
-			axis,
-			height,
-			moveX: true,
-			moveY: true,
-			position,
-			showPx,
-			width,
-		} );
-
-	useEffect( () => {
-		console.log( {
-			'listener size': label,
-			'props size': label2,
-		} );
-	}, [ label, label2 ] );
-
-	if ( ! isVisible ) return null;
+	if ( label && label !== prevLabel )
+		setPrevLabel( ( current ) => Object.assign( current, [ label ] ) );
 
 	const classes = classnames( 'components-resize-tooltip', className );
 
 	return (
 		<Root aria-hidden="true" className={ classes } ref={ ref } { ...props }>
-			{ resizeListener }
 			<Label
 				aria-hidden={ props[ 'aria-hidden' ] }
-				label={ label2 }
+				isVisible={ isVisible ?? ( moveX || moveY ) }
+				label={ label || prevLabel }
 				position={ position }
 				ref={ labelRef }
 				zIndex={ zIndex }

@@ -1,10 +1,12 @@
 /**
  * WordPress dependencies
  */
-import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
-import { useResizeObserver } from '@wordpress/compose';
+import { useRef, useState } from '@wordpress/element';
 
-const noop = () => {};
+/**
+ * Internal dependencies
+ */
+import { useUpdateEffect } from '../../utils';
 
 export type Axis = 'x' | 'y';
 
@@ -14,152 +16,6 @@ export const POSITIONS = {
 } as const;
 
 export type Position = ( typeof POSITIONS )[ keyof typeof POSITIONS ];
-
-interface UseResizeLabelProps {
-	/** The label value. */
-	label?: string;
-	/** Element to be rendered for resize listening events. */
-	resizeListener: JSX.Element;
-}
-
-interface UseResizeLabelArgs {
-	axis?: Axis;
-	fadeTimeout: number;
-	onResize( data: { width: number | null; height: number | null } ): void;
-	position: Position;
-	showPx: boolean;
-}
-
-/**
- * Custom hook that manages resize listener events. It also provides a label
- * based on current resize width x height values.
- *
- * @param props
- * @param props.axis        Only shows the label corresponding to the axis.
- * @param props.fadeTimeout Duration (ms) before deactivating the resize label.
- * @param props.onResize    Callback when a resize occurs. Provides { width, height } callback.
- * @param props.position    Adjusts label value.
- * @param props.showPx      Whether to add `PX` to the label.
- *
- * @return Properties for hook.
- */
-export function useResizeLabel( {
-	axis,
-	fadeTimeout = 180,
-	onResize = noop,
-	position = POSITIONS.bottom,
-	showPx = false,
-}: UseResizeLabelArgs ): UseResizeLabelProps {
-	/*
-	 * The width/height values derive from this special useResizeObserver hook.
-	 * This custom hook uses the ResizeObserver API to listen for resize events.
-	 */
-	const [ resizeListener, sizes ] = useResizeObserver();
-
-	/*
-	 * Indicates if the x/y axis is preferred.
-	 * If set, we will avoid resetting the moveX and moveY values.
-	 * This will allow for the preferred axis values to persist in the label.
-	 */
-	const isAxisControlled = !! axis;
-
-	/*
-	 * The moveX and moveY values are used to track whether the label should
-	 * display width, height, or width x height.
-	 */
-	const [ moveX, setMoveX ] = useState( false );
-	const [ moveY, setMoveY ] = useState( false );
-
-	/*
-	 * Cached dimension values to check for width/height updates from the
-	 * sizes property from useResizeAware()
-	 */
-	const { width, height } = sizes;
-	const heightRef = useRef( height );
-	const widthRef = useRef( width );
-
-	/*
-	 * This timeout is used with setMoveX and setMoveY to determine of
-	 * both width and height values have changed at (roughly) the same time.
-	 */
-	const moveTimeoutRef = useRef< number >();
-
-	const debounceUnsetMoveXY = useCallback( () => {
-		const unsetMoveXY = () => {
-			/*
-			 * If axis is controlled, we will avoid resetting the moveX and moveY values.
-			 * This will allow for the preferred axis values to persist in the label.
-			 */
-			if ( isAxisControlled ) return;
-			setMoveX( false );
-			setMoveY( false );
-		};
-
-		if ( moveTimeoutRef.current ) {
-			window.clearTimeout( moveTimeoutRef.current );
-		}
-
-		moveTimeoutRef.current = window.setTimeout( unsetMoveXY, fadeTimeout );
-	}, [ fadeTimeout, isAxisControlled ] );
-
-	useEffect( () => {
-		/*
-		 * On the initial render of useResizeAware, the height and width values are
-		 * null. They are calculated then set using via an internal useEffect hook.
-		 */
-		const isRendered = width !== null || height !== null;
-
-		if ( ! isRendered ) return;
-
-		const didWidthChange = width !== widthRef.current;
-		const didHeightChange = height !== heightRef.current;
-
-		if ( ! didWidthChange && ! didHeightChange ) return;
-
-		/*
-		 * After the initial render, the useResizeAware will set the first
-		 * width and height values. We'll sync those values with our
-		 * width and height refs. However, we shouldn't render our Tooltip
-		 * label on this first cycle.
-		 */
-		if ( width && ! widthRef.current && height && ! heightRef.current ) {
-			widthRef.current = width;
-			heightRef.current = height;
-			return;
-		}
-
-		/*
-		 * After the first cycle, we can track width and height changes.
-		 */
-		if ( didWidthChange ) {
-			setMoveX( true );
-			widthRef.current = width;
-		}
-
-		if ( didHeightChange ) {
-			setMoveY( true );
-			heightRef.current = height;
-		}
-
-		onResize( { width, height } );
-		debounceUnsetMoveXY();
-	}, [ width, height, onResize, debounceUnsetMoveXY ] );
-
-	const label = getSizeLabel( {
-		axis,
-		height,
-		moveX,
-		moveY,
-		position,
-		showPx,
-		width,
-	} );
-
-	return {
-		label,
-		resizeListener,
-	};
-}
 
 interface GetSizeLabelArgs {
 	axis?: Axis;
@@ -193,9 +49,7 @@ export function getSizeLabel( {
 	position = POSITIONS.bottom,
 	showPx = false,
 	width,
-}: GetSizeLabelArgs ): string | undefined {
-	if ( ! moveX && ! moveY ) return undefined;
-
+}: GetSizeLabelArgs ) {
 	/*
 	 * Corner position...
 	 * We want the label to appear like width x height.
@@ -233,5 +87,20 @@ export function getSizeLabel( {
 		return `${ height }${ labelUnit }`;
 	}
 
-	return undefined;
+	return '';
+}
+
+export function useIsIdle( value: unknown, period: number ) {
+	const timeoutId = useRef( -1 );
+	const [ hold, setHold ] = useState( { value, isIdle: true } );
+
+	useUpdateEffect( () => {
+		setHold( ( held ) => Object.assign( held, { value, isIdle: false } ) );
+		clearTimeout( timeoutId.current );
+		timeoutId.current = window.setTimeout( () => {
+			setHold( { value, isIdle: true } );
+		}, period );
+	}, [ value, period ] );
+
+	return value === hold.value && hold.isIdle;
 }

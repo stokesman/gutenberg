@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 /**
@@ -195,7 +195,9 @@ describe( 'BorderBoxControl', () => {
 			render( <BorderBoxControl { ...props } enableStyle={ false } /> );
 
 			const colorButton = screen.getByLabelText( colorPickerRegex );
-			await user.click( colorButton );
+			await act( async () => {
+				await user.click( colorButton );
+			} );
 
 			// Wait for the custom color picker in the dropdown to appear
 			await waitFor( () =>

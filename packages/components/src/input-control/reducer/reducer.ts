@@ -50,21 +50,11 @@ function mergeInitialState(
  */
 function inputControlStateReducer(
 	composedStateReducers: StateReducer
-): StateReducer< actions.ControlAction > {
+): StateReducer {
 	return ( state, action ) => {
 		const nextState = { ...state };
 
 		switch ( action.type ) {
-			/*
-			 * Controlled updates
-			 */
-			case actions.CONTROL:
-				nextState.value = action.payload.value;
-				nextState.isDirty = false;
-				nextState._event = undefined;
-				// Returns immediately to avoid invoking additional reducers.
-				return nextState;
-
 			/**
 			 * Keyboard events
 			 */
@@ -155,6 +145,8 @@ export function useInputControlStateReducer(
 		mergeInitialState( initialState )
 	);
 
+	const refEvent = useRef< SyntheticEvent >();
+
 	const createChangeEvent =
 		( type: actions.ChangeEventAction[ 'type' ] ) =>
 		(
@@ -165,18 +157,21 @@ export function useInputControlStateReducer(
 				type,
 				payload: { value: nextValue, event },
 			} as actions.InputAction );
+			refEvent.current = event;
 		};
 
 	const createKeyEvent =
 		( type: actions.KeyEventAction[ 'type' ] ) =>
 		( event: actions.KeyEventAction[ 'payload' ][ 'event' ] ) => {
 			dispatch( { type, payload: { event } } );
+			refEvent.current = event;
 		};
 
 	const createDragEvent =
 		( type: actions.DragEventAction[ 'type' ] ) =>
 		( payload: actions.DragEventAction[ 'payload' ] ) => {
 			dispatch( { type, payload } );
+			refEvent.current = payload.event;
 		};
 
 	/**
@@ -196,43 +191,24 @@ export function useInputControlStateReducer(
 	const pressDown = createKeyEvent( actions.PRESS_DOWN );
 	const pressEnter = createKeyEvent( actions.PRESS_ENTER );
 
-	const currentState = useRef( state );
-	const refProps = useRef( { value: initialState.value, onChangeHandler } );
-
-	// Freshens refs to props and state so that subsequent effects have access
-	// to their latest values without their changes causing effect runs.
-	useLayoutEffect( () => {
-		currentState.current = state;
-		refProps.current = { value: initialState.value, onChangeHandler };
-	} );
-
-	// Propagates the latest state through onChange.
-	useLayoutEffect( () => {
-		if (
-			currentState.current._event !== undefined &&
-			state.value !== refProps.current.value &&
-			! state.isDirty
-		) {
-			refProps.current.onChangeHandler( state.value ?? '', {
-				event: currentState.current._event as
+	let changeSender: null | ( () => void ) = null;
+	if (
+		refEvent.current &&
+		state.value !== initialState.value &&
+		! state.isDirty
+	) {
+		changeSender = () => {
+			onChangeHandler( state.value ?? '', {
+				event: refEvent.current as
 					| ChangeEvent< HTMLInputElement >
 					| PointerEvent< HTMLInputElement >,
 			} );
-		}
-	}, [ state.value, state.isDirty ] );
+			refEvent.current = undefined;
+		};
+	}
 
-	// Updates the state from props.
-	useLayoutEffect( () => {
-		if (
-			initialState.value !== currentState.current.value &&
-			! currentState.current.isDirty
-		) {
-			dispatch( {
-				type: actions.CONTROL,
-				payload: { value: initialState.value ?? '' },
-			} );
-		}
-	}, [ initialState.value ] );
+	// Propagates the latest state through onChange.
+	useLayoutEffect( () => changeSender?.(), [ changeSender ] );
 
 	return {
 		change,
@@ -246,6 +222,8 @@ export function useInputControlStateReducer(
 		pressEnter,
 		pressUp,
 		reset,
-		state,
+		state: refEvent.current
+			? state
+			: { ...state, value: initialState.value ?? '' },
 	} as const;
 }

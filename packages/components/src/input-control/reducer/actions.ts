@@ -35,7 +35,6 @@ interface ValuePayload {
 
 export type ChangeAction = Action< typeof CHANGE, ValuePayload >;
 export type CommitAction = Action< typeof COMMIT, ValuePayload >;
-export type ControlAction = Action< typeof CONTROL, ValuePayload >;
 export type PressUpAction = Action< typeof PRESS_UP >;
 export type PressDownAction = Action< typeof PRESS_DOWN >;
 export type PressEnterAction = Action< typeof PRESS_ENTER >;

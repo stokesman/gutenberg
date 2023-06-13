@@ -288,6 +288,14 @@ export type UseControlledRangeValueArgs = {
 	 * The current value.
 	 */
 	value: number | null;
+	/**
+	 * The value when reset.
+	 */
+	resetFallbackValue: number | null;
+	/**
+	 * Callback for value changes.
+	 */
+	onChange: RangeControlProps[ 'onChange' ];
 };
 
 export type UseMarksArgs = NumericProps & {

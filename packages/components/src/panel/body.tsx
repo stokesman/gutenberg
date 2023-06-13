@@ -17,7 +17,7 @@ import type { PanelBodyProps, PanelBodyTitleProps } from './types';
 import type { WordPressComponentProps } from '../ui/context';
 import Button from '../button';
 import Icon from '../icon';
-import { useControlledState, useUpdateEffect } from '../utils';
+import { useControlledValue, useUpdateEffect } from '../utils';
 
 const noop = () => {};
 
@@ -36,13 +36,11 @@ export function UnforwardedPanelBody(
 		title,
 		scrollAfterOpen = true,
 	} = props;
-	const [ isOpened, setIsOpened ] = useControlledState< boolean | undefined >(
-		opened,
-		{
-			initial: initialOpen === undefined ? true : initialOpen,
-			fallback: false,
-		}
-	);
+	const [ isOpened, setIsOpened ] = useControlledValue< boolean >( {
+		value: opened,
+		defaultValue: initialOpen === undefined ? true : initialOpen,
+		onChange: onToggle,
+	} );
 	const nodeRef = useRef< HTMLElement >( null );
 
 	// Defaults to 'smooth' scrolling

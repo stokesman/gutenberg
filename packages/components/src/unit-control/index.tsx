@@ -29,7 +29,7 @@ import {
 	getUnitsWithCurrentUnit,
 	getValidParsedQuantityAndUnit,
 } from './utils';
-import { useControlledState } from '../utils/hooks';
+import { useControlledValue } from '../utils/hooks';
 import type { UnitControlProps, UnitControlOnChangeCallback } from './types';
 import type { StateReducer } from '../input-control/reducer/state';
 
@@ -86,13 +86,15 @@ function UnforwardedUnitControl(
 		units
 	);
 
-	const [ unit, setUnit ] = useControlledState< string | undefined >(
-		units.length === 1 ? units[ 0 ].value : unitProp,
-		{
-			initial: parsedUnit,
-			fallback: '',
-		}
-	);
+	const refChangeProps = useRef< UnitControlOnChangeCallback[ 'data' ] >();
+	const sendUnitChange = ( v: string | undefined ) => {
+		onUnitChange?.( v, refChangeProps.current );
+	};
+	const [ unit, setUnit ] = useControlledValue< string | undefined >( {
+		value: units.length === 1 ? units[ 0 ].value : unitProp,
+		defaultValue: parsedUnit || '',
+		onChange: sendUnitChange,
+	} );
 
 	useEffect( () => {
 		if ( parsedUnit !== undefined ) {
@@ -153,7 +155,7 @@ function UnforwardedUnitControl(
 		}
 
 		onChangeProp?.( nextValue, changeProps );
-		onUnitChange?.( nextUnitValue, changeProps );
+		refChangeProps.current = changeProps;
 
 		setUnit( nextUnitValue );
 	};
@@ -180,7 +182,7 @@ function UnforwardedUnitControl(
 			const changeProps = { event, data };
 
 			// The `onChange` callback already gets called, no need to call it explicitly.
-			onUnitChange?.( validParsedUnit, changeProps );
+			refChangeProps.current = changeProps;
 
 			setUnit( validParsedUnit );
 		}

@@ -28,7 +28,7 @@ import {
 	isValuesMixed,
 	isValuesDefined,
 } from './utils';
-import { useControlledState } from '../utils/hooks';
+import { useControlledValue } from '../utils/hooks';
 import type {
 	BoxControlIconProps,
 	BoxControlProps,
@@ -86,8 +86,10 @@ function BoxControl( {
 	onMouseOver,
 	onMouseOut,
 }: BoxControlProps ) {
-	const [ values, setValues ] = useControlledState( valuesProp, {
-		fallback: DEFAULT_VALUES,
+	const [ values, setValues ] = useControlledValue( {
+		value: valuesProp,
+		defaultValue: DEFAULT_VALUES,
+		onChange,
 	} );
 	const inputValues = values || DEFAULT_VALUES;
 	const hasInitialValue = isValuesDefined( valuesProp );
@@ -128,13 +130,11 @@ function BoxControl( {
 	};
 
 	const handleOnChange = ( nextValues: BoxControlValue ) => {
-		onChange( nextValues );
 		setValues( nextValues );
 		setIsDirty( true );
 	};
 
 	const handleOnReset = () => {
-		onChange( resetValues );
 		setValues( resetValues );
 		setSelectedUnits( resetValues );
 		setIsDirty( false );

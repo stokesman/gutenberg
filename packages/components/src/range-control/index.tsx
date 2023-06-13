@@ -78,11 +78,13 @@ function UnforwardedRangeControl(
 		...otherProps
 	} = props;
 
-	const [ value, setValue ] = useControlledRangeValue( {
+	const [ value, setValue, resetValue ] = useControlledRangeValue( {
 		min,
 		max,
 		value: valueProp ?? null,
 		initial: initialPosition,
+		resetFallbackValue,
+		onChange,
 	} );
 	const isResetPendent = useRef( false );
 
@@ -131,7 +133,6 @@ function UnforwardedRangeControl(
 	const handleOnRangeChange = ( event: ChangeEvent< HTMLInputElement > ) => {
 		const nextValue = parseFloat( event.target.value );
 		setValue( nextValue );
-		onChange( nextValue );
 	};
 
 	const handleOnChange = ( next?: string ) => {
@@ -149,7 +150,6 @@ function UnforwardedRangeControl(
 				nextValue = floatClamp( nextValue, min, max ) as number;
 			}
 
-			onChange( nextValue );
 			isResetPendent.current = false;
 		} else if ( allowReset ) {
 			isResetPendent.current = true;
@@ -158,36 +158,9 @@ function UnforwardedRangeControl(
 
 	const handleOnInputNumberBlur = () => {
 		if ( isResetPendent.current ) {
-			handleOnReset();
+			resetValue();
 			isResetPendent.current = false;
 		}
-	};
-
-	const handleOnReset = () => {
-		let resetValue: number | null = parseFloat( `${ resetFallbackValue }` );
-		let onChangeResetValue: number | undefined = resetValue;
-
-		if ( isNaN( resetValue ) ) {
-			resetValue = null;
-			onChangeResetValue = undefined;
-		}
-
-		setValue( resetValue );
-
-		/**
-		 * Previously, this callback would always receive undefined as
-		 * an argument. This behavior is unexpected, specifically
-		 * when resetFallbackValue is defined.
-		 *
-		 * The value of undefined is not ideal. Passing it through
-		 * to internal <input /> elements would change it from a
-		 * controlled component to an uncontrolled component.
-		 *
-		 * For now, to minimize unexpected regressions, we're going to
-		 * preserve the undefined callback argument, except when a
-		 * resetFallbackValue is defined.
-		 */
-		onChange( onChangeResetValue );
 	};
 
 	const handleShowTooltip = () => setShowTooltip( true );
@@ -317,7 +290,7 @@ function UnforwardedRangeControl(
 							disabled={ disabled || value === undefined }
 							variant="secondary"
 							isSmall
-							onClick={ handleOnReset }
+							onClick={ resetValue }
 						>
 							{ __( 'Reset' ) }
 						</Button>

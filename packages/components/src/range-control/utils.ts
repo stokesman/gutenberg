@@ -6,7 +6,7 @@ import { useCallback } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { useControlledState } from '../utils/hooks';
+import { useControlledValue } from '../utils/hooks';
 import { clamp } from '../utils/math';
 
 import type { UseControlledRangeValueArgs } from './types';
@@ -37,14 +37,39 @@ export function floatClamp( value: number | null, min: number, max: number ) {
 export function useControlledRangeValue(
 	settings: UseControlledRangeValueArgs
 ) {
-	const { min, max, value: valueProp, initial } = settings;
-	const [ state, setInternalState ] = useControlledState(
-		floatClamp( valueProp, min, max ),
-		{
-			initial: floatClamp( initial ?? null, min, max ),
-			fallback: null,
-		}
-	);
+	const {
+		min,
+		max,
+		value: valueProp,
+		initial,
+		onChange,
+		resetFallbackValue,
+	} = settings;
+
+	const [ state, setInternalState ] = useControlledValue<
+		number | null | typeof resetSymbol
+	>( {
+		value: floatClamp( valueProp, min, max ),
+		defaultValue: floatClamp( initial ?? null, min, max ),
+		onChange: ( v ) => {
+			if ( ! onChange ) return;
+
+			if ( v === resetSymbol ) {
+				let resetValue: number | null = parseFloat(
+					`${ resetFallbackValue }`
+				);
+				let onChangeResetValue: number | undefined = resetValue;
+
+				if ( isNaN( resetValue ) ) {
+					resetValue = null;
+					onChangeResetValue = undefined;
+				}
+				// To maintain compatibility, send undefined as the reset value
+				// except when resetFallbackValue is defined.
+				onChange( onChangeResetValue );
+			} else onChange( v );
+		},
+	} );
 
 	const setState = useCallback(
 		( nextValue: number | null ) => {
@@ -57,7 +82,11 @@ export function useControlledRangeValue(
 		[ min, max, setInternalState ]
 	);
 
+	const reset = () => setInternalState( resetSymbol );
+
 	// `state` can't be an empty string because we specified a fallback value of
 	// `null` in `useControlledState`
-	return [ state as Exclude< typeof state, '' >, setState ] as const;
+	return [ state as Exclude< typeof state, '' >, setState, reset ] as const;
 }
+
+const resetSymbol = Symbol();

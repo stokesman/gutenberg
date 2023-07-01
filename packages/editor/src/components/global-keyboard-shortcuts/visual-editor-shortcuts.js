@@ -10,17 +10,26 @@ import { useDispatch } from '@wordpress/data';
 import SaveShortcut from './save-shortcut';
 import { store as editorStore } from '../../store';
 
+const isEventTargetStateless = ( { target } ) =>
+	! target.matches(
+		'textarea, input:is([type=text],[type=tel],[type=search],[type=number],[type=email])'
+	);
+
 function VisualEditorGlobalKeyboardShortcuts() {
 	const { redo, undo } = useDispatch( editorStore );
 
 	useShortcut( 'core/editor/undo', ( event ) => {
-		undo();
-		event.preventDefault();
+		if ( isEventTargetStateless( event ) ) {
+			undo();
+			event.preventDefault();
+		}
 	} );
 
 	useShortcut( 'core/editor/redo', ( event ) => {
-		redo();
-		event.preventDefault();
+		if ( isEventTargetStateless( event ) ) {
+			redo();
+			event.preventDefault();
+		}
 	} );
 
 	return <SaveShortcut />;

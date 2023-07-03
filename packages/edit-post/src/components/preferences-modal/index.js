@@ -20,6 +20,7 @@ import {
 	PreferencesModalSection,
 	store as interfaceStore,
 } from '@wordpress/interface';
+import { useSuppression } from '@wordpress/keyboard-shortcuts';
 import { store as preferencesStore } from '@wordpress/preferences';
 
 /**
@@ -75,6 +76,8 @@ export default function EditPostPreferencesModal() {
 		setIsListViewOpened( false );
 		closeGeneralSidebar();
 	};
+
+	useSuppression( 'core/editor', isModalActive );
 
 	const sections = useMemo(
 		() => [

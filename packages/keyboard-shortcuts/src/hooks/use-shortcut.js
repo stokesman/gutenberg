@@ -2,12 +2,14 @@
  * WordPress dependencies
  */
 import { useContext, useEffect, useRef } from '@wordpress/element';
+import { useSelect } from '@wordpress/data';
 
 /**
  * Internal dependencies
  */
 import useShortcutEventMatch from './use-shortcut-event-match';
 import { context } from '../context';
+import { store } from '../store';
 
 /**
  * Attach a keyboard shortcut handler.
@@ -23,8 +25,18 @@ export default function useShortcut( name, callback, { isDisabled } = {} ) {
 	const callbackRef = useRef();
 	callbackRef.current = callback;
 
+	const isSuppressed = useSelect(
+		( select ) => {
+			for ( const stub of select( store ).getSuppressions() )
+				if ( name.startsWith( stub ) ) return true;
+
+			return false;
+		},
+		[ name ]
+	);
+
 	useEffect( () => {
-		if ( isDisabled ) {
+		if ( isDisabled || isSuppressed ) {
 			return;
 		}
 
@@ -38,5 +50,5 @@ export default function useShortcut( name, callback, { isDisabled } = {} ) {
 		return () => {
 			shortcuts.current.delete( _callback );
 		};
-	}, [ name, isDisabled ] );
+	}, [ name, isDisabled, isSuppressed ] );
 }

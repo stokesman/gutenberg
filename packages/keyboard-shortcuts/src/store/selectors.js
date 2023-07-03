@@ -393,3 +393,8 @@ export const getCategoryShortcuts = createSelector(
 	},
 	( state ) => [ state ]
 );
+
+export const getSuppressions = createSelector(
+	( state ) => state.suppressions,
+	( state ) => [ state.suppressions ]
+);

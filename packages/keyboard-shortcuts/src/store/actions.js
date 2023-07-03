@@ -126,3 +126,11 @@ export function unregisterShortcut( name ) {
 		name,
 	};
 }
+
+export function addSuppression( name ) {
+	return { type: 'ADD_SUPPRESSION', name };
+}
+
+export function removeSuppression( name ) {
+	return { type: 'REMOVE_SUPPRESSION', name };
+}

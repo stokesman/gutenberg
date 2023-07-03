@@ -6,7 +6,7 @@
  *
  * @return {Object} Updated state.
  */
-function reducer( state = {}, action ) {
+function reducer( state = { suppressions: new Set() }, action ) {
 	switch ( action.type ) {
 		case 'REGISTER_SHORTCUT':
 			return {
@@ -21,6 +21,15 @@ function reducer( state = {}, action ) {
 		case 'UNREGISTER_SHORTCUT':
 			const { [ action.name ]: actionName, ...remainingState } = state;
 			return remainingState;
+		case 'ADD_SUPPRESSION':
+			return {
+				...state,
+				suppressions: new Set( [ ...state.suppressions, action.name ] ),
+			};
+		case 'REMOVE_SUPPRESSION':
+			const suppressions = new Set( [ ...state.suppressions ] );
+			suppressions.delete( action.name );
+			return { ...state, suppressions };
 	}
 
 	return state;

@@ -99,24 +99,13 @@ export default function useFocusOutside(
 
 	const blurCheckTimeoutId = useRef< number | undefined >();
 
-	/**
-	 * Cancel a blur check timeout.
-	 */
-	const cancelBlurCheck = useCallback( () => {
-		clearTimeout( blurCheckTimeoutId.current );
-	}, [] );
+	// Cancels blur check on unmount.
+	useEffect( () => () => clearTimeout( blurCheckTimeoutId.current ), [] );
 
-	// Cancel blur checks on unmount.
+	// Cancels blur check if the callback is no longer provided.
 	useEffect( () => {
-		return () => cancelBlurCheck();
-	}, [] );
-
-	// Cancel a blur check if the callback or ref is no longer provided.
-	useEffect( () => {
-		if ( ! onFocusOutside ) {
-			cancelBlurCheck();
-		}
-	}, [ onFocusOutside, cancelBlurCheck ] );
+		if ( ! onFocusOutside ) clearTimeout( blurCheckTimeoutId.current );
+	}, [ onFocusOutside ] );
 
 	/**
 	 * Handles a mousedown or mouseup event to respectively assign and
@@ -187,7 +176,7 @@ export default function useFocusOutside(
 	}, [] );
 
 	return {
-		onFocus: cancelBlurCheck,
+		onFocus: () => clearTimeout( blurCheckTimeoutId.current ),
 		onPointerDown: normalizeButtonFocus,
 		onPointerUp: normalizeButtonFocus,
 		onBlur: queueBlurCheck,

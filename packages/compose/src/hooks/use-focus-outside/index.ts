@@ -157,10 +157,6 @@ export default function useFocusOutside(
 	 * move outside the bound element and is still within the document.
 	 */
 	const queueBlurCheck: FocusEventHandler = useCallback( ( event ) => {
-		// React does not allow using an event reference asynchronously
-		// due to recycling behavior, except when explicitly persisted.
-		event.persist();
-
 		// Skip blur check if clicking button. See `normalizeButtonFocus`.
 		if ( preventBlurCheck.current ) {
 			return;

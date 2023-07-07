@@ -28,7 +28,7 @@ type DialogOptions = {
 	 */
 	__unstableOnClose?: (
 		type: string | undefined,
-		event: SyntheticEvent
+		event: SyntheticEvent | Event
 	) => void;
 };
 

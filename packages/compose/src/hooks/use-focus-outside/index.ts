@@ -1,14 +1,7 @@
 /**
  * External dependencies
  */
-import type {
-	FocusEventHandler,
-	EventHandler,
-	MouseEventHandler,
-	TouchEventHandler,
-	MouseEvent,
-	TouchEvent,
-} from 'react';
+import type { FocusEventHandler, PointerEventHandler } from 'react';
 
 /**
  * WordPress dependencies
@@ -63,10 +56,8 @@ function isFocusNormalizedButton(
 
 type UseFocusOutsideReturn = {
 	onFocus: FocusEventHandler;
-	onMouseDown: MouseEventHandler;
-	onMouseUp: MouseEventHandler;
-	onTouchStart: TouchEventHandler;
-	onTouchEnd: TouchEventHandler;
+	onPointerDown: PointerEventHandler;
+	onPointerUp: PointerEventHandler;
 	onBlur: FocusEventHandler;
 };
 
@@ -137,17 +128,19 @@ export default function useFocusOutside(
 	 * @param event
 	 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#Clicking_and_focus
 	 */
-	const normalizeButtonFocus: EventHandler< MouseEvent | TouchEvent > =
-		useCallback( ( event ) => {
+	const normalizeButtonFocus: PointerEventHandler = useCallback(
+		( event ) => {
 			const { type, target } = event;
-			const isInteractionEnd = [ 'mouseup', 'touchend' ].includes( type );
+			const isInteractionEnd = type === 'pointerup';
 
 			if ( isInteractionEnd ) {
 				preventBlurCheck.current = false;
 			} else if ( isFocusNormalizedButton( target ) ) {
 				preventBlurCheck.current = true;
 			}
-		}, [] );
+		},
+		[]
+	);
 
 	/**
 	 * A callback triggered when a blur event occurs on the element the handler
@@ -195,10 +188,8 @@ export default function useFocusOutside(
 
 	return {
 		onFocus: cancelBlurCheck,
-		onMouseDown: normalizeButtonFocus,
-		onMouseUp: normalizeButtonFocus,
-		onTouchStart: normalizeButtonFocus,
-		onTouchEnd: normalizeButtonFocus,
+		onPointerDown: normalizeButtonFocus,
+		onPointerUp: normalizeButtonFocus,
 		onBlur: queueBlurCheck,
 	};
 }

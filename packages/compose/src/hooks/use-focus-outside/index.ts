@@ -6,7 +6,6 @@ import type {
 	EventHandler,
 	MouseEventHandler,
 	TouchEventHandler,
-	FocusEvent,
 	MouseEvent,
 	TouchEvent,
 } from 'react';
@@ -82,7 +81,7 @@ type UseFocusOutsideReturn = {
  * wrapping element element to capture when focus moves outside that element.
  */
 export default function useFocusOutside(
-	onFocusOutside: ( event: FocusEvent ) => void
+	onFocusOutside: ( event: FocusEvent | React.FocusEvent ) => void
 ): UseFocusOutsideReturn {
 	const currentOnFocusOutside = useRef( onFocusOutside );
 	useEffect( () => {
@@ -90,6 +89,22 @@ export default function useFocusOutside(
 	}, [ onFocusOutside ] );
 
 	const preventBlurCheck = useRef( false );
+
+	const refBoundary = useRef< Element >();
+	useEffect( () => {
+		const onWindowFocus = ( event: FocusEvent ) => {
+			const boundary = refBoundary.current;
+			const doc = refBoundary.current?.ownerDocument;
+			if ( ! boundary || ! doc ) return;
+			setTimeout( () => {
+				if ( ! boundary.contains( doc.activeElement ) )
+					currentOnFocusOutside.current( event );
+			} );
+		};
+
+		window.addEventListener( 'focus', onWindowFocus );
+		return () => window.removeEventListener( 'focus', onWindowFocus );
+	}, [] );
 
 	const blurCheckTimeoutId = useRef< number | undefined >();
 
@@ -168,13 +183,11 @@ export default function useFocusOutside(
 			return;
 		}
 
+		const boundary = ( refBoundary.current = event.currentTarget );
+		const doc = boundary.ownerDocument;
 		blurCheckTimeoutId.current = setTimeout( () => {
-			// If document is not focused then focus should remain
-			// inside the wrapped component and therefore we cancel
-			// this blur event thereby leaving focus in place.
-			// https://developer.mozilla.org/en-US/docs/Web/API/Document/hasFocus.
-			if ( ! document.hasFocus() ) {
-				event.preventDefault();
+			// Bails if document is not focused or if active element is contained.
+			if ( ! doc.hasFocus() || boundary.contains( doc.activeElement ) ) {
 				return;
 			}
 

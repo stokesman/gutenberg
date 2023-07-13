@@ -27,6 +27,7 @@ import {
 	useInstanceId,
 	useFocusReturn,
 	useFocusOnMount,
+	useFocusExit,
 	useConstrainedTabbing,
 	useMergeRefs,
 } from '@wordpress/compose';
@@ -68,6 +69,7 @@ function UnforwardedModal(
 			labelledby: undefined,
 			describedby: undefined,
 		},
+		onFocusExit,
 		onRequestClose,
 		icon,
 		closeButtonLabel,
@@ -103,6 +105,10 @@ function UnforwardedModal(
 	);
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusReturnRef = useFocusReturn();
+	const focusExitRef = useFocusExit( ( active ) => {
+		if ( onFocusExit && ! onFocusExit( active ) ) return;
+		onRequestClose();
+	} );
 	const contentRef = useRef< HTMLDivElement >( null );
 	const childrenContainerRef = useRef< HTMLDivElement >( null );
 
@@ -272,6 +278,7 @@ function UnforwardedModal(
 						focusOnMount !== 'firstContentElement'
 							? focusOnMountRef
 							: null,
+						shouldCloseOnClickOutside ? focusExitRef : null,
 					] ) }
 					role={ role }
 					aria-label={ contentLabel }

@@ -106,6 +106,11 @@ export type ModalProps = {
 	 */
 	size?: 'small' | 'medium' | 'large' | 'fill';
 	/**
+	 * Called when focus exits the modal and may return a falsy value to prevent
+	 * `onRequestClose` from being called.
+	 */
+	onFocusExit?: ( active: Element ) => unknown;
+	/**
 	 *  Handle the key down on the modal frame `div`.
 	 */
 	onKeyDown?: KeyboardEventHandler< HTMLDivElement >;

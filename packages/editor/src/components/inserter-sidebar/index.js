@@ -37,6 +37,8 @@ export default function InserterSidebar( {
 	const TagName = ! isMobileViewport ? VisuallyHidden : 'div';
 	const [ inserterDialogRef, inserterDialogProps ] = useDialog( {
 		onClose: () => setIsInserterOpened( false ),
+		onFocusExit: useRef( ( active ) => ! active.closest( '.media-modal' ) )
+			.current,
 		focusOnMount: null,
 	} );
 

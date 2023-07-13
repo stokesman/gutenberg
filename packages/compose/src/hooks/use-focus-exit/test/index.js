@@ -1,0 +1,249 @@
+/**
+ * External dependencies
+ */
+import { render, screen, within, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+/**
+ * WordPress dependencies
+ */
+import { createPortal, forwardRef, useRef, useState } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
+import useFocusExit from '../';
+
+const IFrame = forwardRef( ( { content, title }, ref ) => {
+	const initialized = useRef();
+	const doRefs = ( node ) => {
+		if ( node ) {
+			if ( ! initialized.current ) {
+				node.contentDocument.write( content );
+				initialized.current = true;
+			}
+			if ( ref ) ref( node );
+		} else if ( ref ) ref( null );
+	};
+	// Sets tabindex because otherwise jsdom won't allow tabbing to iframes.
+	return <iframe tabIndex={ 0 } ref={ doRefs } title={ title } />;
+} );
+
+const FocusExiter = ( { onFocusExit } ) => (
+	<>
+		<main ref={ useFocusExit( onFocusExit ) }>
+			<input type="text" />
+			<button>Button inside the wrapper</button>
+			<IFrame
+				title="test-iframe"
+				content="<html><body><button>Inside the iframe</button></body></html>"
+			/>
+		</main>
+		<button>Button outside the wrapper</button>
+	</>
+);
+
+const WindowedFocusExiter = ( { onFocusExit } ) => {
+	const [ mainWindow, setMainWindow ] = useState();
+	return (
+		<div>
+			{ /* Serves as the main window to allow testing focus exiting the document */ }
+			<IFrame
+				ref={ setMainWindow }
+				title="main-win"
+				content="<html><body></body></html>"
+			/>
+			{ mainWindow &&
+				createPortal(
+					<FocusExiter onFocusExit={ onFocusExit } />,
+					mainWindow.contentDocument.body
+				) }
+
+			<button>Button of separate window</button>
+		</div>
+	);
+};
+
+describe( 'useFocusExit', () => {
+	it( 'should not call handler while tabbing through elements until focus moves outside the component', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+
+		render( <FocusExiter onFocusExit={ mockOnFocusOutside } /> );
+
+		const insideButton = screen.getByRole( 'button', {
+			name: 'Button inside the wrapper',
+		} );
+
+		// Tab through the interactive elements inside the wrapper,
+		// causing multiple focus/blur events.
+		await user.tab();
+		// console.log( '-- - - - -', mainWin.contentDocument.body );
+		expect( insideButton ).toHaveFocus();
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+
+		await user.tab();
+		// Focus should probably be on the iframe or the button inside it but
+		// jsdom doesn't agree so iframes are covered by other tests.
+		expect(
+			screen.getByRole( 'button', {
+				name: 'Button outside the wrapper',
+			} )
+		).toHaveFocus();
+
+		expect( mockOnFocusOutside ).toHaveBeenCalled();
+	} );
+
+	it( 'should not call handler if focus transitions via click to button', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+
+		render( <FocusExiter onFocusExit={ mockOnFocusOutside } /> );
+
+		// Click the input and the button, causing multiple focus/blur events.
+		await user.click( screen.getByRole( 'textbox' ) );
+		await user.click(
+			screen.getByRole( 'button', { name: 'Button inside the wrapper' } )
+		);
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+	} );
+
+	it( 'should not call the handler when clicking in and out of an iframe', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+
+		render( <FocusExiter onFocusExit={ mockOnFocusOutside } /> );
+
+		await user.click( screen.getByRole( 'textbox' ) );
+		const iframe = screen.getByTitle( 'test-iframe' );
+		await user.click(
+			within( iframe.contentDocument.body ).getByRole( 'button', {
+				name: 'Inside the iframe',
+			} )
+		);
+		await user.click( screen.getByRole( 'textbox' ) );
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+	} );
+
+	it( 'should call handler if focus exits the boundary element', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+
+		render( <FocusExiter onFocusExit={ mockOnFocusOutside } /> );
+
+		// Click and focus button inside the wrapper
+		await user.click(
+			screen.getByRole( 'button', { name: 'Button inside the wrapper' } )
+		);
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+
+		// Click and focus button outside the wrapper
+		await user.click(
+			screen.getByRole( 'button', { name: 'Button outside the wrapper' } )
+		);
+
+		expect( mockOnFocusOutside ).toHaveBeenCalled();
+	} );
+
+	it( 'should call handler when focus exits either directly from an iframe or after having focused an iframe', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+		const stepOne = async () => {
+			// Focus within container first
+			await user.click( screen.getByRole( 'textbox' ) );
+			// Click and focus button inside the iframe inside the wrapper.
+			const iframe = screen.getByTitle( 'test-iframe' );
+			await user.click(
+				within( iframe.contentDocument.body ).getByRole( 'button', {
+					name: 'Inside the iframe',
+				} )
+			);
+		};
+
+		render( <FocusExiter onFocusExit={ mockOnFocusOutside } /> );
+
+		await stepOne();
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+
+		// Click and focus button outside the wrapper.
+		await user.click(
+			screen.getByRole( 'button', { name: 'Button outside the wrapper' } )
+		);
+
+		expect( mockOnFocusOutside ).toHaveBeenCalled();
+
+		await stepOne();
+		await user.click( screen.getByRole( 'textbox' ) );
+
+		// Click and focus button outside the wrapper.
+		await user.click(
+			screen.getByRole( 'button', { name: 'Button outside the wrapper' } )
+		);
+
+		expect( mockOnFocusOutside ).toHaveBeenCalledTimes( 2 );
+	} );
+
+	it.only( 'should not call handler when a blur occurs from loss of document focus', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+
+		render( <WindowedFocusExiter onFocusExit={ mockOnFocusOutside } /> );
+		const mainWin = screen.getByTitle( 'main-win' );
+		const inMainWin = within( mainWin.contentDocument.body );
+
+		const buttonInside = inMainWin.getByRole( 'button', {
+			name: 'Button inside the wrapper',
+		} );
+		// Click and focus the inside textbox.
+		await user.click( buttonInside );
+		expect( buttonInside ).toHaveFocus();
+
+		// Click and focus a button outside the window.
+		const buttonBeyond = screen.getByRole( 'button', { name: 'Button of separate window' } );
+		const main = inMainWin.getByRole( 'main' );
+		await user.click( buttonBeyond );
+		const forcedFocusOut = new FocusEvent( 'focusout' );
+		mainWin.focus();
+		// Dispatches this because jsdom doesn't.
+		main.dispatchEvent( forcedFocusOut );
+		// Mocks this because jsdom doesn't update it.
+		// const mockedActiveElement = jest
+		// 	.spyOn( main.ownerDocument, 'activeElement' )
+		// 	.mockReturnValue( buttonBeyond );
+
+		// expect( buttonBeyond ).toHaveFocus();
+
+		await waitFor( () => new Promise( resolve => setTimeout(resolve, 1000 ) ) )
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+		// Restores document.activeElement.
+		mockedActiveElement.mockRestore();
+	} );
+
+	it( 'should cancel check when unmounting while queued', async () => {
+		const mockOnFocusOutside = jest.fn();
+		const user = userEvent.setup();
+
+		const { unmount } = render(
+			<FocusExiter onFocusExit={ mockOnFocusOutside } />
+		);
+
+		// Click and focus button inside the wrapper.
+		const button = screen.getByRole( 'button', {
+			name: 'Button inside the wrapper',
+		} );
+		await user.click( button );
+
+		// Simulate a blur event and the wrapper unmounting while the blur event
+		// handler is queued
+		button.blur();
+		unmount();
+
+		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
+	} );
+} );

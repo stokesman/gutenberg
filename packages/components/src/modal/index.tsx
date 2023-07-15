@@ -39,6 +39,19 @@ import type { ModalProps } from './types';
 // Used to count the number of open modals.
 let openModalCount = 0;
 
+let firstOrigin: Element | null = null;
+
+// Customizes focus return handling to support chained modals.
+const onFocusReturn: Parameters< typeof useFocusReturn >[ 0 ] = (
+	origin,
+	isReturn
+) => {
+	if ( isReturn ) ( ( firstOrigin || origin ) as HTMLElement ).focus();
+	else if ( origin && ! firstOrigin ) firstOrigin = origin;
+
+	if ( openModalCount < 2 ) firstOrigin = null;
+};
+
 function UnforwardedModal(
 	props: ModalProps,
 	forwardedRef: ForwardedRef< HTMLDivElement >
@@ -76,7 +89,7 @@ function UnforwardedModal(
 		: aria.labelledby;
 	const focusOnMountRef = useFocusOnMount( focusOnMount );
 	const constrainedTabbingRef = useConstrainedTabbing();
-	const focusReturnRef = useFocusReturn();
+	const focusReturnRef = useFocusReturn( onFocusReturn );
 	const focusOutsideProps = useFocusOutside( onRequestClose );
 	const contentRef = useRef< HTMLDivElement >( null );
 	const childrenContainerRef = useRef< HTMLDivElement >( null );

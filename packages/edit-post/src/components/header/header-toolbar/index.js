@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { useViewportMatch } from '@wordpress/compose';
-import { useSelect, useDispatch } from '@wordpress/data';
+import { useSelect, useDispatch, select as _select } from '@wordpress/data';
 import { __, _x } from '@wordpress/i18n';
 import {
 	NavigableToolbar,
@@ -28,10 +28,6 @@ import { store as editPostStore } from '../../../store';
 import { unlock } from '../../../lock-unlock';
 
 const { useShouldContextualToolbarShow } = unlock( blockEditorPrivateApis );
-
-const preventDefault = ( event ) => {
-	event.preventDefault();
-};
 
 function HeaderToolbar() {
 	const inserterButton = useRef();
@@ -110,17 +106,13 @@ function HeaderToolbar() {
 			/>
 		</>
 	);
+	const { current: cueInserterToggle } = useRef( ( event ) => {
+		cueInserterToggle.wasOpen = _select( editPostStore ).isInserterOpened();
+		if ( cueInserterToggle.wasOpen ) event.preventDefault();
+	} );
 	const toggleInserter = useCallback( () => {
-		if ( isInserterOpened ) {
-			// Focusing the inserter button should close the inserter popover.
-			// However, there are some cases it won't close when the focus is lost.
-			// See https://github.com/WordPress/gutenberg/issues/43090 for more details.
-			inserterButton.current.focus();
-			setIsInserterOpened( false );
-		} else {
-			setIsInserterOpened( true );
-		}
-	}, [ isInserterOpened, setIsInserterOpened ] );
+		setIsInserterOpened( ! cueInserterToggle.wasOpen );
+	}, [ setIsInserterOpened, cueInserterToggle ] );
 
 	/* translators: button label text should, if possible, be under 16 characters. */
 	const longLabel = _x(
@@ -142,7 +134,7 @@ function HeaderToolbar() {
 					className="edit-post-header-toolbar__inserter-toggle"
 					variant="primary"
 					isPressed={ isInserterOpened }
-					onMouseDown={ preventDefault }
+					onPointerDown={ cueInserterToggle }
 					onClick={ toggleInserter }
 					disabled={ ! isInserterEnabled }
 					icon={ plus }

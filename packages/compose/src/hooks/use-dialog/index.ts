@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { RefCallback, SyntheticEvent } from 'react';
+import type { RefCallback } from 'react';
 
 /**
  * WordPress dependencies
@@ -28,7 +28,7 @@ type DialogOptions = {
 	 */
 	__unstableOnClose?: (
 		type: string | undefined,
-		event: SyntheticEvent
+		event: React.FocusEvent | FocusEvent
 	) => void;
 };
 
@@ -51,18 +51,27 @@ function useDialog( options: DialogOptions ): useDialogReturn {
 	useEffect( () => {
 		currentOptions.current = options;
 	}, Object.values( options ) );
+
+	const closeByOutsideInteraction = useCallback(
+		( event: React.FocusEvent | FocusEvent ) => {
+			// This unstable prop is here only to manage backward compatibility
+			// for the Popover component otherwise, the onClose should be enough.
+			if ( currentOptions.current?.__unstableOnClose ) {
+				currentOptions.current.__unstableOnClose(
+					'focus-outside',
+					event
+				);
+			} else if ( currentOptions.current?.onClose ) {
+				currentOptions.current.onClose();
+			}
+		},
+		[]
+	);
+
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusOnMountRef = useFocusOnMount( options.focusOnMount );
 	const focusReturnRef = useFocusReturn();
-	const focusOutsideProps = useFocusOutside( ( event ) => {
-		// This unstable prop  is here only to manage backward compatibility
-		// for the Popover component otherwise, the onClose should be enough.
-		if ( currentOptions.current?.__unstableOnClose ) {
-			currentOptions.current.__unstableOnClose( 'focus-outside', event );
-		} else if ( currentOptions.current?.onClose ) {
-			currentOptions.current.onClose();
-		}
-	} );
+	const focusOutsideProps = useFocusOutside( closeByOutsideInteraction );
 	const closeOnEscapeRef = useCallback( ( node: HTMLElement ) => {
 		if ( ! node ) {
 			return;
@@ -80,12 +89,64 @@ function useDialog( options: DialogOptions ): useDialogReturn {
 			}
 		} );
 	}, [] );
+	const state = useRef< {
+		ref?: HTMLElement;
+		doc?: Document;
+		obstructOutsidePointer: ( event: MouseEvent ) => void;
+	} >();
+	const obstructOutsidePointerRef = useCallback(
+		( node: HTMLElement ) => {
+			if ( ! node && state.current ) {
+				const { doc, obstructOutsidePointer } = state.current;
+				doc!.removeEventListener( 'mousedown', obstructOutsidePointer, {
+					capture: true,
+				} );
+				state.current = undefined;
+				return;
+			}
+
+			if ( ! state.current )
+				state.current = {
+					obstructOutsidePointer: ( event: MouseEvent ) => {
+						const { target } = event;
+						if (
+							target instanceof Node &&
+							! node.contains( target )
+						) {
+							closeByOutsideInteraction( event );
+							event.preventDefault();
+							event.stopImmediatePropagation();
+							target.addEventListener(
+								'click',
+								( e ) => {
+									e.preventDefault();
+									e.stopImmediatePropagation();
+								},
+								{ once: true, capture: true }
+							);
+						}
+					},
+				};
+
+			if ( node.ownerDocument.defaultView ) {
+				state.current.ref = node;
+				state.current.doc = node.ownerDocument;
+				state.current.doc.addEventListener(
+					'mousedown',
+					state.current.obstructOutsidePointer,
+					{ capture: true }
+				);
+			}
+		},
+		[ closeByOutsideInteraction ]
+	);
 
 	return [
 		useMergeRefs( [
 			options.focusOnMount !== false ? constrainedTabbingRef : null,
 			options.focusOnMount !== false ? focusReturnRef : null,
 			options.focusOnMount !== false ? focusOnMountRef : null,
+			options.focusOnMount !== false ? obstructOutsidePointerRef : null,
 			closeOnEscapeRef,
 		] ),
 		{

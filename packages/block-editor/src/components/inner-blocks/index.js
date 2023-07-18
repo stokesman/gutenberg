@@ -56,6 +56,7 @@ function UncontrolledInnerBlocks( props ) {
 		templateInsertUpdatesSelection,
 		__experimentalCaptureToolbars: captureToolbars,
 		__experimentalAppenderTagName,
+		render,
 		renderAppender,
 		orientation,
 		placeholder,
@@ -120,6 +121,7 @@ function UncontrolledInnerBlocks( props ) {
 		<BlockContextProvider value={ context }>
 			<BlockListItems
 				rootClientId={ clientId }
+				render={ render }
 				renderAppender={ renderAppender }
 				__experimentalAppenderTagName={ __experimentalAppenderTagName }
 				layout={ memoedLayout }

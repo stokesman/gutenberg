@@ -140,6 +140,7 @@ BlockList.__unstableElementContext = elementContext;
 function Items( {
 	placeholder,
 	rootClientId,
+	render,
 	renderAppender,
 	__experimentalAppenderTagName,
 	layout = defaultLayout,
@@ -160,24 +161,26 @@ function Items( {
 		[ rootClientId ]
 	);
 
+	const each = ( clientId ) => (
+		<AsyncModeProvider
+			key={ clientId }
+			value={
+				// Only provide data asynchronously if the block is
+				// not visible and not selected.
+				! visibleBlocks.has( clientId ) &&
+				! selectedBlocks.includes( clientId )
+			}
+		>
+			<BlockListBlock
+				rootClientId={ rootClientId }
+				clientId={ clientId }
+			/>
+		</AsyncModeProvider>
+	);
+
 	return (
 		<LayoutProvider value={ layout }>
-			{ order.map( ( clientId ) => (
-				<AsyncModeProvider
-					key={ clientId }
-					value={
-						// Only provide data asynchronously if the block is
-						// not visible and not selected.
-						! visibleBlocks.has( clientId ) &&
-						! selectedBlocks.includes( clientId )
-					}
-				>
-					<BlockListBlock
-						rootClientId={ rootClientId }
-						clientId={ clientId }
-					/>
-				</AsyncModeProvider>
-			) ) }
+			{ render ? render( order, each ) : order.map( each ) }
 			{ order.length < 1 && placeholder }
 			<BlockListAppender
 				tagName={ __experimentalAppenderTagName }

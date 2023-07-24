@@ -94,9 +94,10 @@ export function getBlockProps( props = {} ) {
 /**
  * Call within a save function to get the props for the inner blocks wrapper.
  *
- * @param {Object} props Optional. Props to pass to the element.
+ * @param {Object} props   Optional. Props to pass to the element.
+ * @param {Object} options Optional. Options.
  */
-export function getInnerBlocksProps( props = {} ) {
+export function getInnerBlocksProps( props = {}, options = {} ) {
 	const { innerBlocks } = innerBlocksPropsProvider;
 	const [ firstBlock ] = innerBlocks ?? [];
 	if ( ! firstBlock ) return props;
@@ -104,8 +105,12 @@ export function getInnerBlocksProps( props = {} ) {
 	// components, return the props as is. This is the case for
 	// `getRichTextValues`.
 	if ( ! firstBlock.clientId ) return { ...props, children: innerBlocks };
+	console.log('with clientId',  innerBlocks );
 	// Value is an array of blocks, so defer to block serializer.
-	const html = serialize( innerBlocks, { isInnerBlocks: true } );
+	const html = serialize( innerBlocks, {
+		isInnerBlocks: true,
+		wrapInner: options.wrapInner,
+	} );
 	// Use special-cased raw HTML tag to avoid default escaping.
 	const children = <RawHTML>{ html }</RawHTML>;
 
@@ -408,7 +413,12 @@ export function __unstableSerializeAndClean( blocks ) {
  */
 export default function serialize( blocks, options ) {
 	const blocksArray = Array.isArray( blocks ) ? blocks : [ blocks ];
-	return blocksArray
-		.map( ( block ) => serializeBlock( block, options ) )
-		.join( '\n\n' );
+	let serialized = blocksArray.map( ( block ) =>
+		serializeBlock( block, options )
+	);
+	if ( options?.wrapInner ) {
+		serialized = options.wrapInner( serialized );
+		console.log( '¡ yeah inner has been wrapped !', serialized );
+	}
+	return serialized.join( '\n\n' );
 }

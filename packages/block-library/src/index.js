@@ -27,6 +27,8 @@ import * as button from './button';
 import * as buttons from './buttons';
 import * as calendar from './calendar';
 import * as categories from './categories';
+import * as cellblock from './cellblock';
+import * as cellblockCell from './cellblock-cell';
 import * as classic from './freeform';
 import * as code from './code';
 import * as column from './column';
@@ -142,6 +144,8 @@ const getAllBlocks = () => {
 		buttons,
 		calendar,
 		categories,
+		cellblock,
+		cellblockCell,
 		code,
 		column,
 		columns,

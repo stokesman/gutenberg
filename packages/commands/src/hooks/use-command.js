@@ -29,6 +29,7 @@ export default function useCommand( command ) {
 			searchLabel: command.searchLabel,
 			icon: command.icon,
 			callback: ( ...args ) => currentCallback.current( ...args ),
+			shortcut: command.shortcut,
 		} );
 		return () => {
 			unregisterCommand( command.name );
@@ -39,6 +40,7 @@ export default function useCommand( command ) {
 		command.searchLabel,
 		command.icon,
 		command.context,
+		command.shortcut,
 		registerCommand,
 		unregisterCommand,
 	] );

@@ -1,5 +1,3 @@
-/** @typedef {import('@wordpress/keycodes').WPKeycodeModifier} WPKeycodeModifier */
-
 /**
  * Configuration of a registered keyboard shortcut.
  *
@@ -11,10 +9,11 @@
  * @property {string=}     context     Command context.
  * @property {JSX.Element} icon        Command icon.
  * @property {Function}    callback    Command callback.
+ * @property {string=}     shortcut    A name of a registered keyboard shortcut.
  */
 
 /**
- * @typedef {(search: string) => WPCommandConfig[]} WPCommandLoaderHook hoo
+ * @typedef {(search: string) => WPCommandConfig[]} WPCommandLoaderHook hook.
  */
 
 /**

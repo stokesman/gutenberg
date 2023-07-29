@@ -130,3 +130,11 @@
 	background: unset;
 	font-weight: 600;
 }
+
+.commands-command-menu__item-shortcut > kbd {
+	margin: 0;
+	color: $gray-800;
+	background-color: initial;
+	font-family: inherit;
+	padding: 0 1px;
+}

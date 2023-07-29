@@ -23,6 +23,7 @@ function commands( state = {}, action ) {
 					context: action.context,
 					callback: action.callback,
 					icon: action.icon,
+					shortcut: action.shortcut,
 				},
 			};
 		case 'UNREGISTER_COMMAND': {

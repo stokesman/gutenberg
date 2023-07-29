@@ -16,6 +16,7 @@ import {
 } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
+	FlexBlock,
 	Modal,
 	TextHighlight,
 	__experimentalHStack as HStack,
@@ -24,12 +25,64 @@ import {
 	store as keyboardShortcutsStore,
 	useShortcut,
 } from '@wordpress/keyboard-shortcuts';
+import { displayShortcutList, shortcutAriaLabel } from '@wordpress/keycodes';
 import { Icon, search as inputIcon } from '@wordpress/icons';
 
 /**
  * Internal dependencies
  */
 import { store as commandsStore } from '../store';
+
+function CommandMenuItemShortcut( { name } ) {
+	const keyCombination = useSelect(
+		( select ) =>
+			select( keyboardShortcutsStore ).getShortcutKeyCombination( name ),
+		[ name ]
+	);
+	const keys = keyCombination.modifier
+		? displayShortcutList[ keyCombination.modifier ](
+				keyCombination.character
+		  )
+		: keyCombination.character;
+	const ariaLabel = keyCombination.modifier
+		? shortcutAriaLabel[ keyCombination.modifier ](
+				keyCombination.character
+		  )
+		: keyCombination.character;
+
+	return (
+		<span
+			className="commands-command-menu__item-shortcut"
+			aria-label={ ariaLabel }
+		>
+			{ Array.isArray( keys ) ? (
+				keys.map( ( key ) => <kbd key={ key }>{ key }</kbd> )
+			) : (
+				<kbd>{ keys }</kbd>
+			) }
+		</span>
+	);
+}
+
+function CommandMenuItem( { close, command, search } ) {
+	const { callback, icon, label, name, searchLabel, shortcut } = command;
+	return (
+		<Command.Item
+			key={ name }
+			value={ searchLabel ?? label }
+			onSelect={ () => callback( { close } ) }
+			id={ name }
+		>
+			<HStack alignment="left" className="commands-command-menu__item">
+				<Icon icon={ icon } />
+				<FlexBlock>
+					<TextHighlight text={ label } highlight={ search } />
+				</FlexBlock>
+				{ shortcut && <CommandMenuItemShortcut name={ shortcut } /> }
+			</HStack>
+		</Command.Item>
+	);
+}
 
 function CommandMenuLoader( { name, search, hook, setLoader, close } ) {
 	const { isLoading, commands = [] } = hook( { search } ) ?? {};
@@ -45,25 +98,12 @@ function CommandMenuLoader( { name, search, hook, setLoader, close } ) {
 		<>
 			<Command.List>
 				{ commands.map( ( command ) => (
-					<Command.Item
+					<CommandMenuItem
 						key={ command.name }
-						value={ command.searchLabel ?? command.label }
-						onSelect={ () => command.callback( { close } ) }
-						id={ command.name }
-					>
-						<HStack
-							alignment="left"
-							className="commands-command-menu__item"
-						>
-							<Icon icon={ command.icon } />
-							<span>
-								<TextHighlight
-									text={ command.label }
-									highlight={ search }
-								/>
-							</span>
-						</HStack>
-					</Command.Item>
+						close={ close }
+						command={ command }
+						search={ search }
+					/>
 				) ) }
 			</Command.List>
 		</>
@@ -115,25 +155,12 @@ export function CommandMenuGroup( { isContextual, search, setLoader, close } ) {
 	return (
 		<Command.Group>
 			{ commands.map( ( command ) => (
-				<Command.Item
+				<CommandMenuItem
 					key={ command.name }
-					value={ command.searchLabel ?? command.label }
-					onSelect={ () => command.callback( { close } ) }
-					id={ command.name }
-				>
-					<HStack
-						alignment="left"
-						className="commands-command-menu__item"
-					>
-						<Icon icon={ command.icon } />
-						<span>
-							<TextHighlight
-								text={ command.label }
-								highlight={ search }
-							/>
-						</span>
-					</HStack>
-				</Command.Item>
+					close={ close }
+					command={ command }
+					search={ search }
+				/>
 			) ) }
 			{ loaders.map( ( loader ) => (
 				<CommandMenuLoaderWrapper

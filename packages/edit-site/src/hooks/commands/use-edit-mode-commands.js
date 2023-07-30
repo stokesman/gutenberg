@@ -15,6 +15,7 @@ import {
 	cog,
 	code,
 	keyboard,
+	listView,
 } from '@wordpress/icons';
 import { useCommandLoader } from '@wordpress/commands';
 import { decodeEntities } from '@wordpress/html-entities';
@@ -168,21 +169,27 @@ function useEditUICommands() {
 		setIsListViewOpened,
 		switchEditorMode,
 	} = useDispatch( editSiteStore );
-	const { canvasMode, editorMode, activeSidebar, showBlockBreadcrumbs } =
-		useSelect(
-			( select ) => ( {
-				canvasMode: unlock( select( editSiteStore ) ).getCanvasMode(),
-				editorMode: select( editSiteStore ).getEditorMode(),
-				activeSidebar: select(
-					interfaceStore
-				).getActiveComplementaryArea( editSiteStore.name ),
-				showBlockBreadcrumbs: select( preferencesStore ).get(
-					'core/edit-site',
-					'showBlockBreadcrumbs'
-				),
-			} ),
-			[]
-		);
+	const {
+		canvasMode,
+		editorMode,
+		isListViewOpen,
+		activeSidebar,
+		showBlockBreadcrumbs,
+	} = useSelect( ( select ) => {
+		const { getEditorMode, isListViewOpened } = select( editSiteStore );
+		return {
+			canvasMode: unlock( select( editSiteStore ) ).getCanvasMode(),
+			editorMode: getEditorMode(),
+			isListViewOpen: isListViewOpened(),
+			activeSidebar: select( interfaceStore ).getActiveComplementaryArea(
+				editSiteStore.name
+			),
+			showBlockBreadcrumbs: select( preferencesStore ).get(
+				'core/edit-site',
+				'showBlockBreadcrumbs'
+			),
+		};
+	}, [] );
 	const { openModal } = useDispatch( interfaceStore );
 	const { get: getPreference } = useSelect( preferencesStore );
 	const { set: setPreference, toggle } = useDispatch( preferencesStore );
@@ -255,6 +262,19 @@ function useEditUICommands() {
 			close();
 		},
 		shortcut: 'core/edit-site/toggle-distraction-free',
+	} );
+
+	commands.push( {
+		name: 'core/toggle-list-view',
+		label: 'Toggle list view',
+		icon: listView,
+		callback: ( { close } ) => {
+			close();
+			if ( isListViewOpen ) return;
+
+			setIsListViewOpened( true );
+		},
+		shortcut: 'core/edit-site/toggle-list-view',
 	} );
 
 	commands.push( {

@@ -73,6 +73,7 @@ export default function useCommonCommands() {
 				openGeneralSidebar( 'edit-post/document' );
 			}
 		},
+		shortcut: 'core/edit-post/toggle-sidebar',
 	} );
 
 	useCommand( {
@@ -87,6 +88,7 @@ export default function useCommonCommands() {
 				openGeneralSidebar( 'edit-post/block' );
 			}
 		},
+		shortcut: 'core/edit-post/toggle-sidebar',
 	} );
 
 	useCommand( {
@@ -97,6 +99,7 @@ export default function useCommonCommands() {
 			toggle( 'core/edit-post', 'distractionFree' );
 			close();
 		},
+		shortcut: 'core/edit-post/toggle-distraction-free',
 	} );
 
 	useCommand( {
@@ -117,6 +120,7 @@ export default function useCommonCommands() {
 			toggle( 'core/edit-post', 'fullscreenMode' );
 			close();
 		},
+		shortcut: 'core/edit-post/toggle-fullscreen',
 	} );
 
 	useCommand( {
@@ -127,6 +131,7 @@ export default function useCommonCommands() {
 			setIsListViewOpened( ! isListViewOpen );
 			close();
 		},
+		shortcut: 'core/edit-post/toggle-list-view',
 	} );
 
 	useCommand( {
@@ -147,6 +152,7 @@ export default function useCommonCommands() {
 			switchEditorMode( editorMode === 'visual' ? 'text' : 'visual' );
 			close();
 		},
+		shortcut: 'core/edit-post/toggle-mode',
 	} );
 
 	useCommand( {
@@ -165,6 +171,7 @@ export default function useCommonCommands() {
 		callback: () => {
 			openModal( KEYBOARD_SHORTCUT_HELP_MODAL_NAME );
 		},
+		shortcut: 'core/edit-post/keyboard-shortcuts',
 	} );
 
 	useCommand( {

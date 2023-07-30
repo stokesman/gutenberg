@@ -220,6 +220,7 @@ function useEditUICommands() {
 				openGeneralSidebar( 'edit-site/block-inspector' );
 			}
 		},
+		shortcut: 'core/edit-site/toggle-block-settings-sidebar',
 	} );
 
 	commands.push( {
@@ -253,6 +254,7 @@ function useEditUICommands() {
 			);
 			close();
 		},
+		shortcut: 'core/edit-site/toggle-distraction-free',
 	} );
 
 	commands.push( {
@@ -273,6 +275,7 @@ function useEditUICommands() {
 			switchEditorMode( editorMode === 'visual' ? 'text' : 'visual' );
 			close();
 		},
+		shortcut: 'core/edit-site/toggle-mode',
 	} );
 
 	commands.push( {
@@ -291,6 +294,7 @@ function useEditUICommands() {
 		callback: () => {
 			openModal( KEYBOARD_SHORTCUT_HELP_MODAL_NAME );
 		},
+		shortcut: 'core/edit-site/keyboard-shortcuts',
 	} );
 
 	commands.push( {

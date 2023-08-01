@@ -26,6 +26,9 @@
 		"align": [ "wide", "full" ],
 		"anchor": true,
 		"ariaLabel": true,
+		"behaviors": {
+			"overlink": true
+		},
 		"html": false,
 		"color": {
 			"gradients": true,

@@ -33,6 +33,15 @@ function gutenberg_register_behaviors_support( $block_type ) {
 		// They could use the `render_block_{$this->name}` filter to modify the markup.
 		add_filter( 'render_block_' . $block_type->name, 'gutenberg_render_behaviors_support_lightbox', 15, 2 );
 	}
+
+	// If it supports the overlink behavior, add the hook to that block.
+	// In the future, this should be a loop with all the behaviors.
+	$has_support = block_has_support( $block_type, array( 'behaviors', 'overlink' ), false );
+	if ( $has_support ) {
+		// Use priority 15 to run this hook after other hooks/plugins.
+		// They could use the `render_block_{$this->name}` filter to modify the markup.
+		add_filter( 'render_block_' . $block_type->name, 'gutenberg_render_behaviors_support_overlink', 15, 2 );
+	}
 }
 
 /**
@@ -192,6 +201,63 @@ function gutenberg_render_behaviors_support_lightbox( $block_content, $block ) {
 HTML;
 
 	return str_replace( '</figure>', $lightbox_html . '</figure>', $body_content );
+}
+
+/**
+ * Add the directives and layout needed for the overlink behavior.
+ * This functions shouldn't be in this file. It should be moved to a package (or somewhere else), where all the behaviors logic is defined.
+ *
+ * @param  string $block_content Rendered block content.
+ * @param  array  $block         Block object.
+ * @return string                Filtered block content.
+ */
+function gutenberg_render_behaviors_support_overlink( $block_content, $block ) {
+	static $initialized = false;
+
+	if ( isset( $block['attrs']['behaviors']['overlink'] ) )
+		$overlink_settings = $block['attrs']['behaviors']['overlink'];
+
+	if ( ! isset( $overlink_settings['enabled'] ) || ! $overlink_settings['enabled'] )
+		return $block_content;
+
+	// Get the link selector from the block attributes.
+	$link_selector = $block['attrs']['behaviors']['overlink']['linkSelector'];
+
+	$initScript = '';
+	if ( ! $initialized ) {
+		$initialized = true;
+		$initScript = <<<HTML
+			<script>
+				wp.interactivity.store( {
+					actions: {
+						core: {
+							overlinkBehavior: {
+								handleClick: ( { event } ) => {
+									const overlink = event.target.closest( '[data-wp-overlink]' );
+									const selector = overlink.getAttribute( 'data-wp-overlink' );
+									const links = overlink.querySelectorAll( 'a[href]' );
+									const link_href = links[
+										( { first: 0, last: links.length - 1 }[ selector ] )
+									].getAttribute( 'href' );
+									location.href = link_href;
+								}
+							}
+						}
+					}
+				} )
+			</script>
+HTML;
+	}
+
+	$tp = new WP_HTML_Tag_Processor( $block_content );
+	$tp->next_tag();
+	$tp->set_attribute( 'data-wp-interactive', true );
+	$tp->set_attribute(
+		'data-wp-on--click',
+		'actions.core.overlinkBehavior.handleClick'
+	);
+	$tp->set_attribute( 'data-wp-overlink', $link_selector );
+	return $initScript . $tp->get_updated_html();
 }
 
 // Register the block support.

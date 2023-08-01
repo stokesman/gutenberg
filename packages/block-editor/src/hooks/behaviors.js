@@ -15,13 +15,66 @@ import { useMemo } from '@wordpress/element';
 import { store as blockEditorStore } from '../store';
 import { InspectorControls } from '../components';
 
+function LightboxControl( { blockAttributes, config, update } ) {
+	const blockHasLink =
+		typeof blockAttributes?.linkDestination !== 'undefined' &&
+		blockAttributes?.linkDestination !== 'none';
+	const helpText = blockHasLink
+		? __( 'The lightbox behavior is disabled for linked images.' )
+		: '';
+
+	return (
+		<SelectControl
+			label={ __( 'Animation' ) }
+			value={ config.animation || '' }
+			options={ [
+				{
+					value: 'zoom',
+					label: __( 'Zoom' ),
+				},
+				{
+					value: 'fade',
+					label: __( 'Fade' ),
+				},
+			] }
+			onChange={ ( value ) => update( { animation: value } ) }
+			help={ helpText }
+			hideCancelButton={ false }
+			size="__unstable-large"
+			disabled={ blockHasLink }
+		/>
+	);
+}
+
+function OverlinkControl( { config, update } ) {
+	return (
+		<SelectControl
+			label={ __( 'Link' ) }
+			value={ config.linkSelector || '' }
+			options={ [
+				{
+					value: 'first',
+					label: __( 'First link' ),
+				},
+				{
+					value: 'last',
+					label: __( 'Last link' ),
+				},
+			] }
+			onChange={ ( value ) => update( { linkSelector: value } ) }
+			hideCancelButton={ false }
+			size="__unstable-large"
+		/>
+	);
+}
+
 function BehaviorsControl( {
+	blockAttributes,
 	blockName,
-	blockBehaviors,
 	onChangeBehavior,
-	onChangeAnimation,
-	disabled = false,
+	setAttributes,
 } ) {
+	const { behaviors: blockBehaviors } = blockAttributes;
 	const { settings } = useSelect(
 		( select ) => {
 			const { getSettings } = select( blockEditorStore );
@@ -45,11 +98,12 @@ function BehaviorsControl( {
 		},
 	};
 	const behaviorsOptions = Object.entries( settings )
+		// Filter out behaviors that are disabled.
 		.filter(
 			( [ behaviorName, behaviorValue ] ) =>
 				hasBlockSupport( blockName, `behaviors.${ behaviorName }` ) &&
 				behaviorValue
-		) // Filter out behaviors that are disabled.
+		)
 		.map( ( [ behaviorName ] ) => ( {
 			value: behaviorName,
 			// Capitalize the first letter of the behavior name.
@@ -70,9 +124,10 @@ function BehaviorsControl( {
 		let value = '';
 		if ( blockBehaviors === undefined ) {
 			value = 'default';
-		}
-		if ( blockBehaviors?.lightbox.enabled ) {
-			value = 'lightbox';
+		} else {
+			value = Object.keys( blockBehaviors ).find(
+				( key ) => blockBehaviors[ key ].enabled
+			);
 		}
 		return {
 			behaviors: mergedBehaviors,
@@ -85,9 +140,9 @@ function BehaviorsControl( {
 		return null;
 	}
 
-	const helpText = disabled
-		? __( 'The lightbox behavior is disabled for linked images.' )
-		: '';
+	const Behavior = { lightbox: LightboxControl, overlink: OverlinkControl }[
+		behaviorsValue
+	];
 
 	return (
 		<InspectorControls group="advanced">
@@ -99,33 +154,22 @@ function BehaviorsControl( {
 					options={ options }
 					onChange={ onChangeBehavior }
 					hideCancelButton={ true }
-					help={ helpText }
 					size="__unstable-large"
-					disabled={ disabled }
 				/>
-				{ behaviorsValue === 'lightbox' && (
-					<SelectControl
-						label={ __( 'Animation' ) }
-						// At the moment we are only supporting one behavior (Lightbox)
-						value={
-							behaviors?.lightbox.animation
-								? behaviors?.lightbox.animation
-								: ''
-						}
-						options={ [
-							{
-								value: 'zoom',
-								label: __( 'Zoom' ),
-							},
-							{
-								value: 'fade',
-								label: __( 'Fade' ),
-							},
-						] }
-						onChange={ onChangeAnimation }
-						hideCancelButton={ false }
-						size="__unstable-large"
-						disabled={ disabled }
+				{ Behavior && (
+					<Behavior
+						blockAttributes={ blockAttributes }
+						config={ behaviors[ behaviorsValue ] }
+						update={ ( valuesMap ) => {
+							setAttributes( {
+								behaviors: {
+									[ behaviorsValue ]: {
+										...blockBehaviors[ behaviorsValue ],
+										...valuesMap,
+									},
+								},
+							} );
+						} }
 					/>
 				) }
 			</div>
@@ -136,8 +180,6 @@ function BehaviorsControl( {
 /**
  * Override the default edit UI to include a new block inspector control for
  * assigning behaviors to blocks if behaviors are enabled in the theme.json.
- *
- * Currently, only the `core/image` block is supported.
  *
  * @param {WPComponent} BlockEdit Original component.
  *
@@ -150,49 +192,40 @@ export const withBehaviors = createHigherOrderComponent( ( BlockEdit ) => {
 		if ( ! hasBlockSupport( props.name, 'behaviors' ) ) {
 			return blockEdit;
 		}
-		const blockHasLink =
-			typeof props.attributes?.linkDestination !== 'undefined' &&
-			props.attributes?.linkDestination !== 'none';
 		return (
 			<>
 				{ blockEdit }
 				<BehaviorsControl
+					blockAttributes={ props.attributes }
 					blockName={ props.name }
-					blockBehaviors={ props.attributes.behaviors }
 					onChangeBehavior={ ( nextValue ) => {
 						if ( nextValue === 'default' ) {
 							props.setAttributes( {
 								behaviors: undefined,
 							} );
-						} else {
-							// If the user selects something, it means that they want to
-							// change the default value (true) so we save it in the attributes.
+						}
+						// Enables the given behavior and saves its default in attributes.
+						else if ( nextValue === 'lightbox' ) {
 							props.setAttributes( {
 								behaviors: {
 									lightbox: {
-										enabled: nextValue === 'lightbox',
-										animation:
-											nextValue === 'lightbox'
-												? 'zoom'
-												: '',
+										enabled: true,
+										animation: 'zoom',
+									},
+								},
+							} );
+						} else if ( nextValue === 'overlink' ) {
+							props.setAttributes( {
+								behaviors: {
+									overlink: {
+										enabled: true,
+										linkSelector: 'first',
 									},
 								},
 							} );
 						}
 					} }
-					onChangeAnimation={ ( nextValue ) => {
-						props.setAttributes( {
-							behaviors: {
-								lightbox: {
-									enabled:
-										props.attributes.behaviors.lightbox
-											.enabled,
-									animation: nextValue,
-								},
-							},
-						} );
-					} }
-					disabled={ blockHasLink }
+					setAttributes={ props.setAttributes }
 				/>
 			</>
 		);

@@ -7,6 +7,16 @@
 					"enabled": false,
 					"animation": ""
 				}
+			},
+			"core/group": {
+				"overlink": {
+					"enabled": false
+				}
+			},
+			"core/column": {
+				"overlink": {
+					"enabled": false
+				}
 			}
 		}
 	},
@@ -294,6 +304,16 @@
 			"core/image": {
 				"behaviors": {
 					"lightbox": true
+				}
+			},
+			"core/group": {
+				"behaviors": {
+					"overlink": true
+				}
+			},
+			"core/column": {
+				"behaviors": {
+					"overlink": true
 				}
 			}
 		}

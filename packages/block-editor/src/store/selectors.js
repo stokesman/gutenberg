@@ -2218,7 +2218,7 @@ export const __experimentalGetAllowedBlocks = createSelector(
  * @typedef {Object} WPDirectInsertBlock
  * @property {string}         name             The type of block.
  * @property {?Object}        attributes       Attributes to pass to the newly created block.
- * @property {?Array<string>} attributesToCopy Attributes to be copied from adjecent blocks when inserted.
+ * @property {?Array<string>} attributesToCopy Attributes to be copied from adjacent blocks when inserted.
  */
 export const getDirectInsertBlock = createSelector(
 	( state, rootClientId = null ) => {

@@ -12,7 +12,7 @@ import {
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useMemo } from '@wordpress/element';
-import { chevronDown } from '@wordpress/icons';
+import { update } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -74,10 +74,10 @@ function VariationsDropdown( {
 			label={ __( 'Transform to variation' ) }
 			text={ __( 'Transform to variation' ) }
 			popoverProps={ {
-				placement: 'bottom-end',
+				placement: 'bottom',
 				className: `${ className }__popover`,
 			} }
-			icon={ chevronDown }
+			icon={ update }
 			toggleProps={ { iconPosition: 'right' } }
 		>
 			{ () => (

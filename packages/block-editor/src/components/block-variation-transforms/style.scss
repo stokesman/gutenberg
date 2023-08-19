@@ -1,35 +1,11 @@
 .block-editor-block-variation-transforms {
 	margin: 0 $grid-unit-20 $grid-unit-20 52px;
-	display: block;
 
 	.components-dropdown-menu__toggle {
-		border: 1px solid $gray-700;
-		border-radius: $radius-block-ui;
-		min-height: 30px;
-		width: 100%;
-		position: relative;
-		text-align: left;
-		justify-content: left;
-		padding: 6px 12px;
-
-		// For all button sizes allow sufficient space for the
-		// dropdown "arrow" icon to display.
-		&.components-dropdown-menu__toggle {
-			padding-right: $icon-size;
-		}
-
-		&:focus:not(:disabled) {
-			border-color: var(--wp-admin-theme-color);
-			box-shadow: 0 0 0 calc(var(--wp-admin-border-width-focus) - #{ $border-width }) var(--wp-admin-theme-color);
-		}
-
-		svg {
-			height: 100%;
-			padding: 0;
-			position: absolute;
-			right: 0;
-			top: 0;
-		}
+		box-shadow: inset 0 0 0 1px $gray-400;
+		min-height: 36px;
+		gap: $grid-unit-05;
+		padding-inline: $grid-unit-15 $grid-unit-10;
 	}
 }
 

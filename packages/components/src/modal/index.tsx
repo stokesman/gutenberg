@@ -10,7 +10,6 @@ import type { ForwardedRef, KeyboardEvent, UIEvent } from 'react';
 import {
 	createPortal,
 	useCallback,
-	useEffect,
 	useRef,
 	useState,
 	forwardRef,
@@ -100,7 +99,7 @@ function UnforwardedModal(
 		}
 	}, [ contentRef ] );
 
-	useEffect( () => {
+	useLayoutEffect( () => {
 		openModalCount++;
 
 		if ( openModalCount === 1 ) {

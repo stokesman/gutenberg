@@ -31,7 +31,7 @@ export function hideApp( unhiddenElement?: HTMLDivElement ) {
 			return;
 		}
 		if ( elementShouldBeHidden( element ) ) {
-			element.setAttribute( 'aria-hidden', 'true' );
+			element.setAttribute( 'inert', '' );
 			hiddenElements.push( element );
 		}
 	} );
@@ -49,7 +49,7 @@ export function elementShouldBeHidden( element: Element ) {
 	const role = element.getAttribute( 'role' );
 	return ! (
 		element.tagName === 'SCRIPT' ||
-		element.hasAttribute( 'aria-hidden' ) ||
+		element.hasAttribute( 'inert' ) ||
 		element.hasAttribute( 'aria-live' ) ||
 		( role && LIVE_REGION_ARIA_ROLES.has( role ) )
 	);
@@ -64,7 +64,7 @@ export function showApp() {
 		return;
 	}
 	hiddenElements.forEach( ( element ) => {
-		element.removeAttribute( 'aria-hidden' );
+		element.removeAttribute( 'inert' );
 	} );
 	hiddenElements = [];
 	isHidden = false;

@@ -9,24 +9,23 @@ test.describe( 'Post Title block', () => {
 	} );
 
 	test( 'Can edit the post title', async ( { editor, page } ) => {
-		// Create a block with some text that will trigger a list creation.
 		await editor.insertBlock( { name: 'core/post-title' } );
 
-		// Add the post title
-		await page.type(
-			'role=textbox[name="Add title"i]',
-			'Just tweaking the post title'
-		);
+		// Change the title from the block.
+		await editor.canvas
+			.locator( 'role=document[name="Block: Title"i]' )
+			.type( 'Just tweaking the post title' );
 
-		// Save the post draft and reload.
+		// Save the post draft, reload and assert the post’s title changed.
 		await page.click( 'role=button[name="Save draft"i]' );
 		await page.waitForSelector(
 			'role=button[name="Dismiss this notice"i]'
 		);
 		await page.reload();
-
-		const titleBlock = page.locator( '[data-type="core/post-title"]' );
-
-		await expect( titleBlock ).toHaveText( 'Just tweaking the post title' );
+		await expect(
+			page
+				.frameLocator( '[name=editor-canvas]' )
+				.locator( 'role=textbox[name="Add title"i]' )
+		).toHaveText( 'Just tweaking the post title' );
 	} );
 } );

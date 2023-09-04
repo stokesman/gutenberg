@@ -9,23 +9,20 @@ test.describe( 'Post Title block', () => {
 	} );
 
 	test( 'Can edit the post title', async ( { editor, page } ) => {
+		// Insert the block and change the title.
 		await editor.insertBlock( { name: 'core/post-title' } );
-
-		// Change the title from the block.
-		await editor.canvas
-			.locator( 'role=document[name="Block: Title"i]' )
-			.type( 'Just tweaking the post title' );
+		await page.keyboard.type( '🥨' );
 
 		// Save the post draft, reload and assert the post’s title changed.
 		await page.click( 'role=button[name="Save draft"i]' );
-		await page.waitForSelector(
-			'role=button[name="Dismiss this notice"i]'
-		);
+		await page
+			.locator( 'role=button[name="Dismiss this notice"i]' )
+			.waitFor();
 		await page.reload();
 		await expect(
 			page
 				.frameLocator( '[name=editor-canvas]' )
 				.locator( 'role=textbox[name="Add title"i]' )
-		).toHaveText( 'Just tweaking the post title' );
+		).toHaveText( '🥨' );
 	} );
 } );

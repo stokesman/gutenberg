@@ -4,6 +4,7 @@
 import { toDom, applyValue } from '../to-dom';
 import { createElement } from '../create-element';
 import { spec } from './helpers';
+import { OPAQUE_TAGS } from '../to-tree';
 
 describe( 'recordToDom', () => {
 	beforeAll( () => {
@@ -22,14 +23,22 @@ describe( 'recordToDom', () => {
 		} );
 	} );
 
-	spec.filter( ( props ) => 'NS_URI' in props ).forEach(
-		( { description, NS_URI, record, selectTarget } ) => {
-			it( `${ description } with correct namespace`, () => {
-				const { body } = toDom( { value: record } );
-				expect( selectTarget( body ).namespaceURI ).toEqual( NS_URI );
+	for ( const [ tagName, NSURI ] of OPAQUE_TAGS ) {
+		it( `should create non editable ${ tagName } with correct namespace`, () => {
+			const { body } = toDom( {
+				value: {
+					formats: [ [ { type: tagName } ] ],
+					replacements: [],
+					text: '',
+				},
 			} );
-		}
-	);
+			const subject = body.firstElementChild;
+			expect( subject.outerHTML ).toBe(
+				`<${ tagName } contenteditable="false">\ufeff</${ tagName }>`
+			);
+			expect( subject.namespaceURI ).toBe( NSURI );
+		} );
+	}
 } );
 
 describe( 'applyValue', () => {

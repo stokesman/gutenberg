@@ -4,7 +4,9 @@
 import { toDom, applyValue } from '../to-dom';
 import { createElement } from '../create-element';
 import { spec } from './helpers';
-import { OPAQUE_TAGS } from '../to-tree';
+import { OBJECT_REPLACEMENT_CHARACTER } from '../special-characters';
+import { registerFormatType } from '../register-format-type';
+import { unregisterFormatType } from '../unregister-format-type';
 
 describe( 'recordToDom', () => {
 	beforeAll( () => {
@@ -23,22 +25,43 @@ describe( 'recordToDom', () => {
 		} );
 	} );
 
-	for ( const [ tagName, NSURI ] of OPAQUE_TAGS ) {
-		it( `should create non editable ${ tagName } with correct namespace`, () => {
-			const { body } = toDom( {
-				value: {
-					formats: [ [ { type: tagName } ] ],
-					replacements: [],
-					text: '',
-				},
-			} );
-			const subject = body.firstElementChild;
-			expect( subject.outerHTML ).toBe(
-				`<${ tagName } contenteditable="false">\ufeff</${ tagName }>`
-			);
-			expect( subject.namespaceURI ).toBe( NSURI );
+	it( 'should use the namespace specfied by the format', () => {
+		const formatName = 'my-plugin/nom';
+		const namespace = 'http://www.w3.org/1998/Math/MathML';
+
+		registerFormatType( formatName, {
+			namespace,
+			title: 'Math',
+			tagName: 'math',
+			className: 'nom-math',
+			contentEditable: false,
+			edit() {},
 		} );
-	}
+
+		const { body } = toDom( {
+			value: {
+				formats: [ , ],
+				replacements: [
+					{
+						type: 'my-plugin/nom',
+						tagName: 'math',
+						attributes: {},
+						unregisteredAttributes: {},
+						innerHTML: '0',
+					},
+				],
+				text: OBJECT_REPLACEMENT_CHARACTER,
+			},
+		} );
+
+		unregisterFormatType( formatName );
+
+		const subject = body.firstElementChild;
+		expect( subject.outerHTML ).toBe(
+			`<math class="nom-math" contenteditable="false">0</math>`
+		);
+		expect( subject.namespaceURI ).toBe( namespace );
+	} );
 } );
 
 describe( 'applyValue', () => {

@@ -6,11 +6,6 @@ import { getActiveFormats } from './get-active-formats';
 import { getFormatType } from './get-format-type';
 import { OBJECT_REPLACEMENT_CHARACTER, ZWNBSP } from './special-characters';
 
-export const OPAQUE_TAGS = new Map( [
-	[ 'svg', 'http://www.w3.org/2000/svg' ],
-	[ 'math', 'http://www.w3.org/1998/Math/MathML' ],
-] );
-
 function restoreOnAttributes( attributes, isEditableTree ) {
 	if ( isEditableTree ) {
 		return attributes;
@@ -61,6 +56,7 @@ function fromFormat( {
 
 	let elementAttributes = {};
 	let contentEditable;
+	let namespace;
 
 	if ( boundaryClass && isEditableTree ) {
 		elementAttributes[ 'data-rich-text-format-boundary' ] = 'true';
@@ -70,9 +66,8 @@ function fromFormat( {
 		if ( attributes ) {
 			elementAttributes = { ...attributes, ...elementAttributes };
 		}
-		contentEditable = ! OPAQUE_TAGS.has( type );
 	} else {
-		( { contentEditable, object } = formatType );
+		( { contentEditable, namespace, object } = formatType );
 		type = tagName || formatType.tagName;
 		elementAttributes = { ...unregisteredAttributes, ...elementAttributes };
 
@@ -103,7 +98,7 @@ function fromFormat( {
 	}
 	attributes = restoreOnAttributes( elementAttributes, isEditableTree );
 
-	return { type, object, attributes, namespace: OPAQUE_TAGS.get( type ) };
+	return { type, object, attributes, namespace };
 }
 
 /**

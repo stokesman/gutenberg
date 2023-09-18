@@ -55,8 +55,6 @@ function fromFormat( {
 	const formatType = getFormatType( type );
 
 	let elementAttributes = {};
-	let contentEditable;
-	let namespace;
 
 	if ( boundaryClass && isEditableTree ) {
 		elementAttributes[ 'data-rich-text-format-boundary' ] = 'true';
@@ -66,39 +64,51 @@ function fromFormat( {
 		if ( attributes ) {
 			elementAttributes = { ...attributes, ...elementAttributes };
 		}
-	} else {
-		( { contentEditable, namespace, object } = formatType );
-		type = tagName || formatType.tagName;
-		elementAttributes = { ...unregisteredAttributes, ...elementAttributes };
 
-		for ( const name in attributes ) {
-			const key = formatType.attributes
-				? formatType.attributes[ name ]
-				: false;
+		return {
+			type,
+			attributes: restoreOnAttributes(
+				elementAttributes,
+				isEditableTree
+			),
+			object,
+		};
+	}
 
-			if ( key ) {
-				elementAttributes[ key ] = attributes[ name ];
-			} else {
-				elementAttributes[ name ] = attributes[ name ];
-			}
-		}
+	elementAttributes = { ...unregisteredAttributes, ...elementAttributes };
 
-		if ( formatType.className ) {
-			if ( elementAttributes.class ) {
-				elementAttributes.class = `${ formatType.className } ${ elementAttributes.class }`;
-			} else {
-				elementAttributes.class = formatType.className;
-			}
+	for ( const name in attributes ) {
+		const key = formatType.attributes
+			? formatType.attributes[ name ]
+			: false;
+
+		if ( key ) {
+			elementAttributes[ key ] = attributes[ name ];
+		} else {
+			elementAttributes[ name ] = attributes[ name ];
 		}
 	}
 
-	// When a format or tag is non editable, make it non editable in the editor.
-	if ( isEditableTree && contentEditable === false ) {
+	if ( formatType.className ) {
+		if ( elementAttributes.class ) {
+			elementAttributes.class = `${ formatType.className } ${ elementAttributes.class }`;
+		} else {
+			elementAttributes.class = formatType.className;
+		}
+	}
+
+	// When a format is declared as non editable, make it non editable in the
+	// editor.
+	if ( isEditableTree && formatType.contentEditable === false ) {
 		elementAttributes.contenteditable = 'false';
 	}
-	attributes = restoreOnAttributes( elementAttributes, isEditableTree );
 
-	return { type, object, attributes, namespace };
+	return {
+		type: tagName || formatType.tagName,
+		object: formatType.object,
+		attributes: restoreOnAttributes( elementAttributes, isEditableTree ),
+		namespace: formatType.namespace,
+	};
 }
 
 /**

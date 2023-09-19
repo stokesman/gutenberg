@@ -223,7 +223,7 @@ function UnforwardedModal(
 					ref={ useMergeRefs( [
 						constrainedTabbingRef,
 						focusReturnRef,
-						focusOnMountRef,
+						focusOnMount === true ? focusOnMountRef : null,
 					] ) }
 					role={ role }
 					aria-label={ contentLabel }
@@ -283,7 +283,16 @@ function UnforwardedModal(
 								) }
 							</div>
 						) }
-						<div ref={ childrenContainerRef }>{ children }</div>
+						<div
+							ref={ useMergeRefs( [
+								childrenContainerRef,
+								focusOnMount === 'firstElement'
+									? focusOnMountRef
+									: null,
+							] ) }
+						>
+							{ children }
+						</div>
 					</div>
 				</div>
 			</StyleProvider>

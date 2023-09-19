@@ -26,7 +26,7 @@ import {
 } from '@wordpress/compose';
 import { __ } from '@wordpress/i18n';
 import { close } from '@wordpress/icons';
-import { getScrollContainer } from '@wordpress/dom';
+import { focus, getScrollContainer } from '@wordpress/dom';
 
 /**
  * Internal dependencies
@@ -76,7 +76,12 @@ function UnforwardedModal(
 	const headingId = title
 		? `components-modal-header-${ instanceId }`
 		: aria.labelledby;
-	const focusOnMountRef = useFocusOnMount( focusOnMount, frameRef );
+	const focusOnMountRef = useFocusOnMount(
+		focusOnMount === 'firstElement'
+			? ( [ first ] ) =>
+					first ? first : focus.tabbable.find( frameRef.current )[ 0 ]
+			: focusOnMount
+	);
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusReturnRef = useFocusReturn();
 	const focusOutsideProps = useFocusOutside( onRequestClose );

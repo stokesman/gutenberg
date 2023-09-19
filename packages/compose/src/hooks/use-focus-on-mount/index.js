@@ -4,13 +4,12 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { focus } from '@wordpress/dom';
 
-/** @typedef {import('react').MutableRefObject<HTMLElement|undefined>} RefFallback */
+/** @typedef {boolean | 'firstElement' | ((tabbables: HTMLElement[]) => HTMLElement)} FocusOnMount */
 
 /**
  * Hook used to focus the first tabbable element on mount.
  *
- * @param {boolean | 'firstElement'} focusOnMount  Focus on mount mode.
- * @param {RefFallback}              [refFallback] Ref of fallback element to focus in case 'firstElement' fails.
+ * @param {FocusOnMount} focusOnMount Focus on mount mode.
  * @return {import('react').RefCallback<HTMLElement>} Ref callback.
  *
  * @example
@@ -28,10 +27,8 @@ import { focus } from '@wordpress/dom';
  * }
  * ```
  */
-export default function useFocusOnMount(
-	focusOnMount = 'firstElement',
-	refFallback
-) {
+export default function useFocusOnMount( focusOnMount = 'firstElement' ) {
+	/** @type {import('react').MutableRefObject<typeof focusOnMount>} */
 	const focusOnMountRef = useRef( focusOnMount );
 
 	/**
@@ -65,7 +62,8 @@ export default function useFocusOnMount(
 	}, [] );
 
 	return useCallback( ( node ) => {
-		if ( ! node || focusOnMountRef.current === false ) {
+		const currentFocusOnMount = focusOnMountRef.current;
+		if ( ! node || currentFocusOnMount === false ) {
 			return;
 		}
 
@@ -73,23 +71,18 @@ export default function useFocusOnMount(
 			return;
 		}
 
-		if ( focusOnMountRef.current === 'firstElement' ) {
-			timerId.current = setTimeout( () => {
-				const firstTabbable = /** @type {HTMLElement|undefined} */ (
-					focus.tabbable.find( node )[ 0 ] ??
-						( refFallback?.current &&
-							focus.tabbable.find( refFallback.current )[ 0 ] )
-				);
-
-				if ( firstTabbable ) setFocus( firstTabbable );
-			}, 0 );
-
-			return;
+		if ( currentFocusOnMount === true ) {
+			return setFocus( node );
 		}
 
-		setFocus( node );
+		timerId.current = setTimeout( () => {
+			const tabbables = focus.tabbable.find( node );
+			const candidate =
+				currentFocusOnMount === 'firstElement'
+					? tabbables[ 0 ]
+					: currentFocusOnMount( tabbables );
+
+			if ( candidate ) setFocus( candidate );
+		}, 0 );
 	}, [] );
-	// Omission of refFallback is intentional as it’s meant to be a ref. In case
-	// a consumer passes an unstable value leaving it out of dependencies will
-	// avoid unnecessary renders/callbacks.
 }

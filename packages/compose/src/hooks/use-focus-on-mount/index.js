@@ -4,10 +4,13 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { focus } from '@wordpress/dom';
 
+/** @typedef {import('react').MutableRefObject<HTMLElement|undefined>} RefFallback */
+
 /**
  * Hook used to focus the first tabbable element on mount.
  *
- * @param {boolean | 'firstElement'} focusOnMount Focus on mount mode.
+ * @param {boolean | 'firstElement'} focusOnMount  Focus on mount mode.
+ * @param {RefFallback}              [refFallback] Ref of fallback element to focus in case 'firstElement' fails.
  * @return {import('react').RefCallback<HTMLElement>} Ref callback.
  *
  * @example
@@ -25,7 +28,10 @@ import { focus } from '@wordpress/dom';
  * }
  * ```
  */
-export default function useFocusOnMount( focusOnMount = 'firstElement' ) {
+export default function useFocusOnMount(
+	focusOnMount = 'firstElement',
+	refFallback
+) {
 	const focusOnMountRef = useRef( focusOnMount );
 
 	/**
@@ -69,11 +75,13 @@ export default function useFocusOnMount( focusOnMount = 'firstElement' ) {
 
 		if ( focusOnMountRef.current === 'firstElement' ) {
 			timerId.current = setTimeout( () => {
-				const firstTabbable = focus.tabbable.find( node )[ 0 ];
+				const firstTabbable = /** @type {HTMLElement|undefined} */ (
+					focus.tabbable.find( node )[ 0 ] ??
+						( refFallback?.current &&
+							focus.tabbable.find( refFallback.current )[ 0 ] )
+				);
 
-				if ( firstTabbable ) {
-					setFocus( /** @type {HTMLElement} */ ( firstTabbable ) );
-				}
+				if ( firstTabbable ) setFocus( firstTabbable );
 			}, 0 );
 
 			return;
@@ -81,4 +89,7 @@ export default function useFocusOnMount( focusOnMount = 'firstElement' ) {
 
 		setFocus( node );
 	}, [] );
+	// Omission of refFallback is intentional as it’s meant to be a ref. In case
+	// a consumer passes an unstable value leaving it out of dependencies will
+	// avoid unnecessary renders/callbacks.
 }

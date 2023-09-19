@@ -71,11 +71,12 @@ function UnforwardedModal(
 	} = props;
 
 	const ref = useRef< HTMLDivElement >();
+	const frameRef = useRef< HTMLDivElement >();
 	const instanceId = useInstanceId( Modal );
 	const headingId = title
 		? `components-modal-header-${ instanceId }`
 		: aria.labelledby;
-	const focusOnMountRef = useFocusOnMount( focusOnMount );
+	const focusOnMountRef = useFocusOnMount( focusOnMount, frameRef );
 	const constrainedTabbingRef = useConstrainedTabbing();
 	const focusReturnRef = useFocusReturn();
 	const focusOutsideProps = useFocusOutside( onRequestClose );
@@ -223,6 +224,7 @@ function UnforwardedModal(
 					ref={ useMergeRefs( [
 						constrainedTabbingRef,
 						focusReturnRef,
+						frameRef,
 						focusOnMount === true ? focusOnMountRef : null,
 					] ) }
 					role={ role }

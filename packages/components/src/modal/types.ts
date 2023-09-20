@@ -63,8 +63,15 @@ export type ModalProps = {
 	 */
 	contentLabel?: string;
 	/**
-	 * If this property is true, it will focus the first tabbable element
-	 * rendered in the modal.
+	 * Determines focus handling when the modal mounts.
+	 *
+	 *  - If `true`, focuses the modal frame.
+	 *  - If `"firstElement"`, focuses the first tabbable element within.
+	 *    Typically the close button or an element rendered by `headerActions`.
+	 *  - If `"firstContentElement`, focuses the first tabbable element within
+	 *    the content of the modal.
+	 *  - If `false`, does nothing.
+	 *  - If a function, focuses the element returned by the function.
 	 *
 	 * @default true
 	 */

@@ -313,7 +313,7 @@ const WithFocusOnMount = () => {
 
 _Parameters_
 
--   _focusOnMount_ `boolean | 'firstElement'`: Focus on mount mode.
+-   _focusOnMount_ `FocusOnMount`: Determines if focus is moved and to where. Defaults to `"firstElement"` and focuses the first tabbable element within. If `true`, focuses the element the ref is attached to. If `false`, does nothing. If a function, focuses the element returned by the function.
 
 _Returns_
 

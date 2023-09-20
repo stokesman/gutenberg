@@ -187,9 +187,9 @@ Titles are required for accessibility reasons, see `aria.labelledby` and `title`
 
 -   Required: No
 
-#### `focusOnMount`: `boolean | 'firstElement'`
+#### `focusOnMount`: `boolean | 'firstElement' | 'firstContentElement' | Function`
 
-If this property is true, it will focus the first tabbable element rendered in the modal.
+Determines focus handling when the modal mounts. Defaults to `true` and focuses the modal frame. If `"firstElement"`, focuses the first tabbable element within. Typically the close button or an element rendered by `headerActions`. If `"firstContentElement`, focuses the first tabbable element within the content of the modal. If `false`, does nothing. If a function, focuses the element returned by the function.
 
 -   Required: No
 -   Default: `true`

@@ -5,11 +5,15 @@ import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { focus } from '@wordpress/dom';
 
 /** @typedef {(tabbables: HTMLElement[]) => HTMLElement | undefined} FocusOnMountCallback */
+/** @typedef {boolean | 'firstElement' | FocusOnMountCallback} FocusOnMount */
 
 /**
  * Hook used to focus the first tabbable element on mount.
  *
- * @param {boolean | 'firstElement' | FocusOnMountCallback} focusOnMount Focus on mount mode.
+ * @param {FocusOnMount} focusOnMount Determines if focus is moved and to where. Defaults to `"firstElement"` and
+ *                                    focuses the first tabbable element within. If `true`, focuses the element the
+ *                                    ref is attached to. If `false`, does nothing. If a function, focuses the element
+ *                                    returned by the function.
  * @return {import('react').RefCallback<HTMLElement>} Ref callback.
  *
  * @example

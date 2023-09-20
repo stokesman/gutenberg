@@ -71,15 +71,19 @@ function UnforwardedModal(
 	} = props;
 
 	const ref = useRef< HTMLDivElement >();
-	const frameRef = useRef< HTMLDivElement >();
 	const instanceId = useInstanceId( Modal );
 	const headingId = title
 		? `components-modal-header-${ instanceId }`
 		: aria.labelledby;
+	const focusFirstContentElement = ( [ first ]: HTMLElement[] ) => {
+		const content = childrenContainerRef.current;
+		if ( ! content ) return first;
+
+		return ( focus.tabbable.find( content )[ 0 ] as HTMLElement ) ?? first;
+	};
 	const focusOnMountRef = useFocusOnMount(
-		focusOnMount === 'firstElement'
-			? ( [ first ] ) =>
-					first ? first : focus.tabbable.find( frameRef.current )[ 0 ]
+		focusOnMount === 'firstContentElement'
+			? focusFirstContentElement
 			: focusOnMount
 	);
 	const constrainedTabbingRef = useConstrainedTabbing();
@@ -229,8 +233,7 @@ function UnforwardedModal(
 					ref={ useMergeRefs( [
 						constrainedTabbingRef,
 						focusReturnRef,
-						frameRef,
-						focusOnMount === true ? focusOnMountRef : null,
+						focusOnMountRef,
 					] ) }
 					role={ role }
 					aria-label={ contentLabel }
@@ -290,16 +293,7 @@ function UnforwardedModal(
 								) }
 							</div>
 						) }
-						<div
-							ref={ useMergeRefs( [
-								childrenContainerRef,
-								focusOnMount === 'firstElement'
-									? focusOnMountRef
-									: null,
-							] ) }
-						>
-							{ children }
-						</div>
+						<div ref={ childrenContainerRef }>{ children }</div>
 					</div>
 				</div>
 			</StyleProvider>

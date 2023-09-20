@@ -66,7 +66,7 @@ function RenameModal( { blockName, originalBlockName, onClose, onSave } ) {
 			title={ __( 'Rename' ) }
 			onRequestClose={ onClose }
 			overlayClassName="block-editor-block-rename-modal"
-			focusOnMount="firstElement"
+			focusOnMount="firstContentElement"
 			aria={ {
 				describedby: dialogDescription,
 			} }

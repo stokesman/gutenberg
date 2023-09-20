@@ -4,12 +4,12 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { focus } from '@wordpress/dom';
 
-/** @typedef {boolean | 'firstElement' | ((tabbables: HTMLElement[]) => HTMLElement)} FocusOnMount */
+/** @typedef {(tabbables: HTMLElement[]) => HTMLElement | undefined} FocusOnMountCallback */
 
 /**
  * Hook used to focus the first tabbable element on mount.
  *
- * @param {FocusOnMount} focusOnMount Focus on mount mode.
+ * @param {boolean | 'firstElement' | FocusOnMountCallback} focusOnMount Focus on mount mode.
  * @return {import('react').RefCallback<HTMLElement>} Ref callback.
  *
  * @example
@@ -76,7 +76,9 @@ export default function useFocusOnMount( focusOnMount = 'firstElement' ) {
 		}
 
 		timerId.current = setTimeout( () => {
-			const tabbables = focus.tabbable.find( node );
+			const tabbables = /** @type {HTMLElement[]} */ (
+				focus.tabbable.find( node )
+			);
 			const candidate =
 				currentFocusOnMount === 'firstElement'
 					? tabbables[ 0 ]

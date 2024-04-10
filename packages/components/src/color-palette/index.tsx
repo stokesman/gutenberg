@@ -10,7 +10,7 @@ import classnames from 'classnames';
 /**
  * WordPress dependencies
  */
-import { useInstanceId } from '@wordpress/compose';
+import { useInstanceId, useRefEffect } from '@wordpress/compose';
 import { __, sprintf } from '@wordpress/i18n';
 import { useCallback, useMemo, useState, forwardRef } from '@wordpress/element';
 
@@ -185,6 +185,7 @@ function UnforwardedColorPalette(
 		asButtons,
 		loop,
 		clearable = true,
+		disableClearButton,
 		colors = [],
 		disableCustomColors = false,
 		enableAlpha = false,
@@ -248,8 +249,31 @@ function UnforwardedColorPalette(
 		value,
 	};
 
+	// Changes whether the clear button is disabled or not but only when it
+	// doesn’t have focus.
+	const effectAblenessOfClearButton = useRefEffect(
+		( node: HTMLMetaElement & { parentElement: HTMLButtonElement } ) => {
+			const { ownerDocument, parentElement: button } = node;
+			if ( disableClearButton ) {
+				if ( ownerDocument?.activeElement !== button )
+					button.disabled = true;
+				else
+					ownerDocument.addEventListener(
+						'focusout',
+						() => ( button.disabled = ownerDocument.hasFocus() ),
+						{ once: true }
+					);
+			} else button.disabled = false;
+		},
+		// This effect might as well run every render but `useRefEffect` expects
+		// dependencies so while only `disableClearButton` is actually consumed
+		// `value` is included to ensure the effect runs when it changes.
+		[ disableClearButton, value ]
+	);
+
 	const actions = !! clearable && (
 		<CircularOptionPicker.ButtonAction onClick={ clearColor }>
+			<meta ref={ effectAblenessOfClearButton } />
 			{ __( 'Clear' ) }
 		</CircularOptionPicker.ButtonAction>
 	);

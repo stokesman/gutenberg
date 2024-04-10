@@ -51,6 +51,12 @@ export type ColorPaletteProps = Pick< PaletteProps, 'onChange' > & {
 	 */
 	clearable?: boolean;
 	/**
+	 * Whether the clearing button is enabled or not.
+	 *
+	 * @default false
+	 */
+	disableClearButton?: boolean;
+	/**
 	 * Array with the colors to be shown. When displaying multiple color palettes
 	 * to choose from, the format of the array changes from an array of colors
 	 * objects, to an array of color palettes.

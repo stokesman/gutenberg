@@ -43,6 +43,7 @@ function ColorGradientControlInner( {
 	colorValue,
 	gradientValue,
 	clearable,
+	disableClearButton,
 	showTitle = true,
 	enableAlpha,
 	headingLevel,
@@ -75,6 +76,7 @@ function ColorGradientControlInner( {
 					__experimentalIsRenderedInSidebar
 				}
 				clearable={ clearable }
+				disableClearButton={ disableClearButton }
 				enableAlpha={ enableAlpha }
 				headingLevel={ headingLevel }
 			/>

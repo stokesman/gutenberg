@@ -387,8 +387,8 @@ function UnforwardedColorPalette(
  * Allows the user to pick a color from a list of pre-defined color entries.
  *
  * ```jsx
+ * import { useState } from 'react';
  * import { ColorPalette } from '@wordpress/components';
- * import { useState } from '@wordpress/element';
  *
  * const MyColorPalette = () => {
  *   const [ color, setColor ] = useState ( '#f00' )
@@ -404,7 +404,7 @@ function UnforwardedColorPalette(
  *       onChange={ ( color ) => setColor( color ) }
  *     />
  *   );
- * } );
+ * };
  * ```
  */
 export const ColorPalette = forwardRef( UnforwardedColorPalette );

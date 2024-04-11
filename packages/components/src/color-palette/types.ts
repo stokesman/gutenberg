@@ -45,13 +45,18 @@ export type CustomColorPickerDropdownProps = DropdownProps & {
 
 export type ColorPaletteProps = Pick< PaletteProps, 'onChange' > & {
 	/**
-	 * Whether the palette should have a clearing button.
+	 * Whether the palette should have a clearing button. It’s strongly advised
+	 * to not change this prop while the component is mounted as doing so can
+	 * cause focus to be lost. The button may be safely disabled by using the
+	 * `disableClearButton` prop.
 	 *
 	 * @default true
 	 */
 	clearable?: boolean;
 	/**
-	 * Whether the clearing button is enabled or not.
+	 * Whether the clearing button is enabled or not. If this prop is set to
+	 * `true` while the button has focus it will not be made disabled until
+	 * it no longer has focus.
 	 *
 	 * @default false
 	 */

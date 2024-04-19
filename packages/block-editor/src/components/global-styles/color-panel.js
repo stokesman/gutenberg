@@ -190,7 +190,7 @@ function ColorPanelTab( {
 			gradientValue={ isGradient ? inheritedValue : undefined }
 			onColorChange={ isGradient ? undefined : setValue }
 			onGradientChange={ isGradient ? setValue : undefined }
-			clearable={ inheritedValue === userValue }
+			disableClearButton={ inheritedValue !== userValue }
 			headingLevel={ 3 }
 		/>
 	);

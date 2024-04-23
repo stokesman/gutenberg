@@ -7,58 +7,50 @@ import userEvent from '@testing-library/user-event';
 /**
  * WordPress dependencies
  */
-import { createPortal, forwardRef, useRef, useState } from '@wordpress/element';
+import { createPortal, useReducer } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
 import useFocusExit from '../';
 
-const IFrame = forwardRef( ( { content, title }, ref ) => {
-	const initialized = useRef();
-	const doRefs = ( node ) => {
-		if ( node ) {
-			if ( ! initialized.current ) {
-				node.contentDocument.write( content );
-				initialized.current = true;
-			}
-			if ( ref ) ref( node );
-		} else if ( ref ) ref( null );
-	};
-	// Sets tabindex because otherwise jsdom won't allow tabbing to iframes.
-	return <iframe tabIndex={ 0 } ref={ doRefs } title={ title } />;
-} );
+const bodyRefReducer = ( held, node ) => node?.contentDocument.body;
+
+const IFrame = ( { title, children } ) => {
+	const [ body, setBody ] = useReducer( bodyRefReducer );
+	return (
+		<>
+			<iframe
+				// Sets tabindex because otherwise jsdom won't allow tabbing to iframes.
+				tabIndex={ 0 }
+				ref={ setBody }
+				title={ title }
+			/>
+			{ body && createPortal( children, body ) }
+		</>
+	);
+};
 
 const FocusExiter = ( { onFocusExit } ) => (
 	<>
 		<main ref={ useFocusExit( onFocusExit ) }>
 			<input type="text" />
 			<button>Button inside the wrapper</button>
-			<IFrame
-				title="test-iframe"
-				content="<html><body><button>Inside the iframe</button></body></html>"
-			/>
+			<IFrame title="test-iframe">
+				<button>Inside the iframe</button>
+			</IFrame>
 		</main>
 		<button>Button outside the wrapper</button>
 	</>
 );
 
 const WindowedFocusExiter = ( { onFocusExit } ) => {
-	const [ mainWindow, setMainWindow ] = useState();
 	return (
 		<div>
 			{ /* Serves as the main window to allow testing focus exiting the document */ }
-			<IFrame
-				ref={ setMainWindow }
-				title="main-win"
-				content="<html><body></body></html>"
-			/>
-			{ mainWindow &&
-				createPortal(
-					<FocusExiter onFocusExit={ onFocusExit } />,
-					mainWindow.contentDocument.body
-				) }
-
+			<IFrame title="main-win">
+				<FocusExiter onFocusExit={ onFocusExit } />
+			</IFrame>
 			<button>Button of separate window</button>
 		</div>
 	);
@@ -71,27 +63,29 @@ describe( 'useFocusExit', () => {
 
 		render( <FocusExiter onFocusExit={ mockOnFocusOutside } /> );
 
-		const insideButton = screen.getByRole( 'button', {
-			name: 'Button inside the wrapper',
-		} );
-
 		// Tab through the interactive elements inside the wrapper,
 		// causing multiple focus/blur events.
 		await user.tab();
 		// console.log( '-- - - - -', mainWin.contentDocument.body );
-		expect( insideButton ).toHaveFocus();
+		expect( screen.getByRole( 'textbox' ) ).toHaveFocus();
 
+		await user.tab();
+		expect(
+			screen.getByRole( 'button', {
+				name: 'Button inside the wrapper',
+			} )
+		).toHaveFocus();
+
+		await user.tab();
+		expect( screen.getByTitle( 'test-iframe' ) ).toHaveFocus();
 		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
 
 		await user.tab();
-		// Focus should probably be on the iframe or the button inside it but
-		// jsdom doesn't agree so iframes are covered by other tests.
 		expect(
 			screen.getByRole( 'button', {
 				name: 'Button outside the wrapper',
 			} )
 		).toHaveFocus();
-
 		expect( mockOnFocusOutside ).toHaveBeenCalled();
 	} );
 
@@ -188,7 +182,7 @@ describe( 'useFocusExit', () => {
 		expect( mockOnFocusOutside ).toHaveBeenCalledTimes( 2 );
 	} );
 
-	it.only( 'should not call handler when a blur occurs from loss of document focus', async () => {
+	it( 'should not call handler when a blur occurs from loss of document focus', async () => {
 		const mockOnFocusOutside = jest.fn();
 		const user = userEvent.setup();
 
@@ -204,25 +198,12 @@ describe( 'useFocusExit', () => {
 		expect( buttonInside ).toHaveFocus();
 
 		// Click and focus a button outside the window.
-		const buttonBeyond = screen.getByRole( 'button', { name: 'Button of separate window' } );
-		const main = inMainWin.getByRole( 'main' );
+		const buttonBeyond = screen.getByRole( 'button', {
+			name: 'Button of separate window',
+		} );
 		await user.click( buttonBeyond );
-		const forcedFocusOut = new FocusEvent( 'focusout' );
-		mainWin.focus();
-		// Dispatches this because jsdom doesn't.
-		main.dispatchEvent( forcedFocusOut );
-		// Mocks this because jsdom doesn't update it.
-		// const mockedActiveElement = jest
-		// 	.spyOn( main.ownerDocument, 'activeElement' )
-		// 	.mockReturnValue( buttonBeyond );
-
-		// expect( buttonBeyond ).toHaveFocus();
-
-		await waitFor( () => new Promise( resolve => setTimeout(resolve, 1000 ) ) )
-
+		expect( buttonBeyond ).toHaveFocus();
 		expect( mockOnFocusOutside ).not.toHaveBeenCalled();
-		// Restores document.activeElement.
-		mockedActiveElement.mockRestore();
 	} );
 
 	it( 'should cancel check when unmounting while queued', async () => {

@@ -23,7 +23,7 @@ const MyColorPalette = () => {
 			onChange={ ( color ) => setColor( color ) }
 		/>
 	);
-} );
+};
 ```
 
 If you're using this component outside the editor, you can
@@ -38,10 +38,16 @@ The component accepts the following props.
 
 ### `clearable`: `boolean`
 
-Whether the palette should have a clearing button.
+Whether the palette should have a clearing button. It’s strongly advised to not change this prop while the component is mounted as doing so can cause focus to be lost. The button may be safely disabled by using the `disableClearButton` prop.
 
 -   Required: No
 -   Default: `true`
+
+### `disableClearButton`: `boolean`
+
+Whether the clearing button is enabled or not. If this prop is set to `true` while the button has focus it will not be made disabled until it no longer has focus.
+
+-   Required: No
 
 ### `colors`: `PaletteObject[] | ColorObject[]`
 

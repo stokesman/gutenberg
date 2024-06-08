@@ -8,7 +8,6 @@ import clsx from 'clsx';
  */
 import { useSelect } from '@wordpress/data';
 import { useViewportMatch } from '@wordpress/compose';
-import { __unstableMotion as motion } from '@wordpress/components';
 import { store as preferencesStore } from '@wordpress/preferences';
 import { useState } from '@wordpress/element';
 import { PinnedItems } from '@wordpress/interface';
@@ -28,22 +27,6 @@ import PostSavedState from '../post-saved-state';
 import PostViewLink from '../post-view-link';
 import PreviewDropdown from '../preview-dropdown';
 import { store as editorStore } from '../../store';
-
-const toolbarVariations = {
-	distractionFreeDisabled: { y: '-50px' },
-	distractionFreeHover: { y: 0 },
-	distractionFreeHidden: { y: '-50px' },
-	visible: { y: 0 },
-	hidden: { y: 0 },
-};
-
-const backButtonVariations = {
-	distractionFreeDisabled: { x: '-100%' },
-	distractionFreeHover: { x: 0 },
-	distractionFreeHidden: { x: '-100%' },
-	visible: { x: 0 },
-	hidden: { x: 0 },
-};
 
 function Header( {
 	customSaveButton,
@@ -90,17 +73,10 @@ function Header( {
 	// as some plugins might be relying on its presence.
 	return (
 		<div className="editor-header edit-post-header">
-			<motion.div
-				variants={ backButtonVariations }
-				transition={ { type: 'tween' } }
-			>
+			<div className="editor-header__slot-start">
 				<BackButton.Slot />
-			</motion.div>
-			<motion.div
-				variants={ toolbarVariations }
-				className="editor-header__toolbar"
-				transition={ { type: 'tween' } }
-			>
+			</div>
+			<div className="editor-header__toolbar">
 				<DocumentTools
 					disableBlockTools={ forceDisableBlockTools || isTextEditor }
 				/>
@@ -118,12 +94,8 @@ function Header( {
 				>
 					{ ! title ? <DocumentBar /> : title }
 				</div>
-			</motion.div>
-			<motion.div
-				variants={ toolbarVariations }
-				transition={ { type: 'tween' } }
-				className="editor-header__settings"
-			>
+			</div>
+			<div className="editor-header__settings">
 				{ ! customSaveButton && ! isPublishSidebarOpened && (
 					// This button isn't completely hidden by the publish sidebar.
 					// We can't hide the whole toolbar when the publish sidebar is open because
@@ -154,7 +126,7 @@ function Header( {
 					<PinnedItems.Slot scope="core" />
 				) }
 				<MoreMenu />
-			</motion.div>
+			</div>
 		</div>
 	);
 }

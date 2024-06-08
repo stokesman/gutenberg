@@ -21,6 +21,14 @@
 	&.has-transparent-background .edit-site-layout__view-mode-toggle-icon {
 		background: transparent;
 	}
+
+	transition: transform 0.3s ease-out;
+	@include reduce-motion("transition");
+	.is-distraction-free.is-full-canvas & {
+		body:not(.is-DFM-reveal) &:not(:hover) {
+			transform: translateX(-100%);
+		}
+	}
 }
 
 .edit-site-layout__view-mode-toggle-icon {

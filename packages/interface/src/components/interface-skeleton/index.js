@@ -16,6 +16,7 @@ import { __, _x } from '@wordpress/i18n';
 import {
 	useMergeRefs,
 	useReducedMotion,
+	useRefEffect,
 	useViewportMatch,
 	useResizeObserver,
 } from '@wordpress/compose';
@@ -26,11 +27,6 @@ import {
 import NavigableRegion from '../navigable-region';
 
 const ANIMATION_DURATION = 0.25;
-const commonTransition = {
-	type: 'tween',
-	duration: ANIMATION_DURATION,
-	ease: [ 0.6, 0, 0.4, 1 ],
-};
 
 function useHTMLClass( className ) {
 	useEffect( () => {
@@ -46,31 +42,49 @@ function useHTMLClass( className ) {
 	}, [ className ] );
 }
 
-const headerVariants = {
-	hidden: { opacity: 1, marginTop: -60 },
-	visible: { opacity: 1, marginTop: 0 },
-	distractionFreeHover: {
-		opacity: 1,
-		marginTop: 0,
-		transition: {
-			...commonTransition,
-			delay: 0.2,
-			delayChildren: 0.2,
-		},
-	},
-	distractionFreeHidden: {
-		opacity: 0,
-		marginTop: -60,
-	},
-	distractionFreeDisabled: {
-		opacity: 0,
-		marginTop: 0,
-		transition: {
-			...commonTransition,
-			delay: 0.8,
-			delayChildren: 0.8,
-		},
-	},
+// Adds hover and focus handlers to reveal/hide the header in DFM. Done with DOM
+// event handlers due to the block toolbar’s slots which cause React to dispacth
+// `pointerleave` on the header when they are hovered.
+const useRevealDFM = ( enabled ) => {
+	const effect = ( node ) => {
+		if ( enabled ) {
+			node.addEventListener( 'pointerenter', onHover );
+			node.addEventListener( 'pointerleave', onHover );
+			node.addEventListener( 'focusin', onFocus );
+			node.addEventListener( 'focusout', onFocus );
+			return () => {
+				clearTimeout( timerIdHover );
+				node.removeEventListener( 'pointerenter', onHover );
+				node.removeEventListener( 'pointerleave', onHover );
+				node.addEventListener( 'focusin', onFocus );
+				node.addEventListener( 'focusout', onFocus );
+			};
+		}
+	};
+	return useRefEffect( effect, [ enabled ] );
+};
+let timerIdHover = null;
+const onHover = ( { target, type } ) => {
+	const { body } = target.ownerDocument;
+	clearTimeout( timerIdHover );
+	if ( ! target.matches( ':focus-within' ) ) {
+		if ( type === 'pointerenter' ) {
+			timerIdHover = setTimeout(
+				() => body.classList.add( 'is-DFM-reveal' ),
+				200 // hover in delay
+			);
+		} else {
+			timerIdHover = setTimeout(
+				() => body.classList.remove( 'is-DFM-reveal' ),
+				800 // hover out delay
+			);
+		}
+	}
+};
+const onFocus = ( { currentTarget, type } ) => {
+	const { body } = currentTarget.ownerDocument;
+	const force = type === 'focusin' || currentTarget.matches( ':hover' );
+	body.classList.toggle( 'is-DFM-reveal', force );
 };
 
 function InterfaceSkeleton(
@@ -103,6 +117,7 @@ function InterfaceSkeleton(
 	};
 	const navigateRegionsProps = useNavigateRegions( shortcuts );
 	useHTMLClass( 'interface-interface-skeleton__html-container' );
+	const effectHeaderReveal = useRevealDFM( isDistractionFree );
 
 	const defaultLabels = {
 		/* translators: accessibility text for the top bar landmark region. */
@@ -136,41 +151,17 @@ function InterfaceSkeleton(
 			) }
 		>
 			<div className="interface-interface-skeleton__editor">
-				<AnimatePresence initial={ false }>
-					{ !! header && (
-						<NavigableRegion
-							as={ motion.div }
-							className="interface-interface-skeleton__header"
-							aria-label={ mergedLabels.header }
-							initial={
-								isDistractionFree
-									? 'distractionFreeHidden'
-									: 'hidden'
-							}
-							whileHover={
-								isDistractionFree
-									? 'distractionFreeHover'
-									: 'visible'
-							}
-							animate={
-								isDistractionFree
-									? 'distractionFreeDisabled'
-									: 'visible'
-							}
-							exit={
-								isDistractionFree
-									? 'distractionFreeHidden'
-									: 'hidden'
-							}
-							variants={ headerVariants }
-							transition={ defaultTransition }
-						>
-							{ header }
-						</NavigableRegion>
-					) }
-				</AnimatePresence>
+				{ !! header && (
+					<NavigableRegion
+						ref={ effectHeaderReveal }
+						className="interface-interface-skeleton__header"
+						aria-label={ mergedLabels.header }
+					>
+						{ header }
+					</NavigableRegion>
+				) }
 				{ isDistractionFree && (
-					<div className="interface-interface-skeleton__header">
+					<div className="interface-interface-skeleton__header-notices">
 						{ editorNotices }
 					</div>
 				) }

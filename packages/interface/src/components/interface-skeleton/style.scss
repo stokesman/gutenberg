@@ -144,6 +144,15 @@ html.interface-interface-skeleton__html-container {
 	z-index: z-index(".interface-interface-skeleton__header");
 	color: $gray-900;
 	outline: 1px solid transparent; // Shown for Windows 10 High Contrast mode.
+
+	.is-distraction-free & {
+		transition: opacity 0.3s linear;
+		opacity: 0;
+		body.is-DFM-reveal & {
+			opacity: 1;
+		}
+		@include reduce-motion("transition");
+	}
 }
 
 .interface-interface-skeleton__footer {

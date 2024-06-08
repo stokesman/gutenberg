@@ -7,9 +7,10 @@ import {
 	privateApis as editorPrivateApis,
 } from '@wordpress/editor';
 import { store as noticesStore } from '@wordpress/notices';
-import { useDispatch } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { __, sprintf } from '@wordpress/i18n';
 import { PluginArea } from '@wordpress/plugins';
+import { store as preferencesStore } from '@wordpress/preferences';
 import { privateApis as routerPrivateApis } from '@wordpress/router';
 
 /**
@@ -33,8 +34,13 @@ function AppLayout() {
 	useCommonCommands();
 	useSetCommandContext();
 	const route = useLayoutAreas();
+	const isDistractionFree = useSelect(
+		( select ) =>
+			select( preferencesStore ).get( 'core', 'distractionFree' ),
+		[]
+	);
 
-	return <Layout route={ route } />;
+	return <Layout route={ route } isDistractionFree={ isDistractionFree } />;
 }
 
 export default function App() {

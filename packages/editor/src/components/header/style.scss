@@ -190,16 +190,18 @@
 	}
 }
 
-.editor-editor-interface.is-distraction-free {
-	.interface-interface-skeleton__header {
-		border-bottom: none;
-	}
+.editor-header__toolbar,
+.editor-header__settings,
+.editor-header__slot-start {
+	transition: transform 0.3s ease-out;
+	@include reduce-motion("transition");
+}
 
+.is-distraction-free {
 	.editor-header {
 		box-shadow: inherit;
 		position: absolute;
 		width: 100%;
-
 
 		// hide some parts
 		& > .edit-post-header__settings > .edit-post-header__post-preview-button {
@@ -211,17 +213,14 @@
 		& > .editor-header__settings > .interface-pinned-items {
 			display: none;
 		}
-
 	}
 
-	// We need ! important because we override inline styles
-	// set by the motion component.
-	.interface-interface-skeleton__header:focus-within {
-		opacity: 1 !important;
-		div {
-			transform: translateX(0) translateZ(0) !important;
-		}
+	body:not(.is-DFM-reveal) & :is(.editor-header__toolbar, .editor-header__settings) {
+		transform: translateY(-50px);
+	}
 
+	body:not(.is-DFM-reveal) & .editor-header__slot-start {
+		transform: translateX(-100%);
 	}
 
 	.components-editor-notices__dismissible {

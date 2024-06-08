@@ -51,7 +51,7 @@ const { NavigableRegion } = unlock( editorPrivateApis );
 
 const ANIMATION_DURATION = 0.3;
 
-export default function Layout( { route } ) {
+export default function Layout( { route, isDistractionFree } ) {
 	useSyncCanvasModeWithURL();
 	useCommands();
 	const isMobileViewport = useViewportMatch( 'medium', '<' );
@@ -111,6 +111,7 @@ export default function Layout( { route } ) {
 					'edit-site-layout',
 					navigateRegionsProps.className,
 					{
+						'is-distraction-free': isDistractionFree,
 						'is-full-canvas': canvasMode === 'edit',
 					}
 				) }

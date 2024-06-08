@@ -192,6 +192,19 @@
 .edit-site-editor__editor-interface .editor-header {
 	padding-inline: $header-height 0;
 }
+.edit-site-layout .interface-interface-skeleton__header {
+	transition: opacity 0.3s ease-out, margin-top 0.3s ease-out;
+}
+.edit-site-layout.is-distraction-free .interface-interface-skeleton__header {
+	transition: opacity 0.3s ease-out;
+}
+.edit-site-layout.is-distraction-free:not(.is-full-canvas) .interface-interface-skeleton__header {
+	opacity: 0;
+}
+.edit-site-layout:not(.is-distraction-free, .is-full-canvas) .interface-interface-skeleton__header {
+	// The header has a 1px box-shadow that should be hidden as well.
+	margin-top: -#{$header-height + 1px};
+}
 
 .edit-site-layout__actions {
 	z-index: z-index(".edit-site-layout__actions");

@@ -16,6 +16,7 @@ import {
 	BlockToolbar,
 } from '@wordpress/block-editor';
 import { store as keyboardShortcutsStore } from '@wordpress/keyboard-shortcuts';
+import { Disabled } from '@wordpress/components';
 import { useViewportMatch } from '@wordpress/compose';
 import { useState, useCallback } from '@wordpress/element';
 
@@ -116,6 +117,18 @@ export default function EditorInterface( {
 		},
 		[ entitiesSavedStatesCallback ]
 	);
+	let header = (
+		<Header
+			forceIsDirty={ forceIsDirty }
+			setEntitiesSavedStatesCallback={ setEntitiesSavedStatesCallback }
+			customSaveButton={ customSaveButton }
+			forceDisableBlockTools={ forceDisableBlockTools }
+			title={ title }
+		/>
+	);
+	if ( isPreviewMode ) {
+		header = <Disabled isDisabled>{ header }</Disabled>;
+	}
 
 	return (
 		<InterfaceSkeleton
@@ -130,19 +143,7 @@ export default function EditorInterface( {
 				...interfaceLabels,
 				secondarySidebar: secondarySidebarLabel,
 			} }
-			header={
-				! isPreviewMode && (
-					<Header
-						forceIsDirty={ forceIsDirty }
-						setEntitiesSavedStatesCallback={
-							setEntitiesSavedStatesCallback
-						}
-						customSaveButton={ customSaveButton }
-						forceDisableBlockTools={ forceDisableBlockTools }
-						title={ title }
-					/>
-				)
-			}
+			header={ header }
 			editorNotices={ <EditorNotices /> }
 			secondarySidebar={
 				! isPreviewMode &&

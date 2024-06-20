@@ -17,3 +17,16 @@
 	display: flex;
 	justify-content: center;
 }
+
+// Fills space left by the editor header’s back button when transitioning to view mode.
+// The animation is used merely to delay the application because if applied immediately
+// the button is still present.
+html:is(.canvas-mode-view-transition) .editor-header {
+	animation: editor-header-back-button-space-filler 1ms 1ms 1 forwards;
+}
+
+@keyframes editor-header-back-button-space-filler {
+	to {
+		margin-inline-start: $header-height;
+	}
+}

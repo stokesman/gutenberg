@@ -7,6 +7,7 @@ import { ComponentsContext } from './context/context-system-provider';
 import Theme from './theme';
 import { Tabs } from './tabs';
 import { kebabCase } from './utils/strings';
+import useResizableBox from './resizable-box/hook';
 import { lock } from './lock-unlock';
 import Badge from './badge';
 
@@ -19,4 +20,5 @@ lock( privateApis, {
 	Menu,
 	kebabCase,
 	Badge,
+	useResizableBox,
 } );

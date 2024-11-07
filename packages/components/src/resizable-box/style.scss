@@ -7,6 +7,7 @@ $resize-handler-container-size: $resize-handler-size + ($grid-unit-05 * 2); // M
 	display: none;
 	width: $resize-handler-container-size;
 	height: $resize-handler-container-size;
+	outline: none;
 
 	// Elevate the resize handle above the focus style.
 	z-index: z-index(".components-resizable-box__handle");
@@ -14,14 +15,6 @@ $resize-handler-container-size: $resize-handler-size + ($grid-unit-05 * 2); // M
 	// Show the resize handle if set in props
 	.components-resizable-box__container.has-show-handle & {
 		display: block;
-	}
-
-	> div {
-		position: relative;
-		width: 100%;
-		height: 100%;
-		z-index: z-index(".components-resizable-box__handle");
-		outline: none;
 	}
 }
 

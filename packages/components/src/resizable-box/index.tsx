@@ -32,6 +32,7 @@ import useResizableBox from './hook';
 import ResizeTooltip from './resize-tooltip';
 import { clamp } from '../utils/math';
 import { parseQuantityAndUnitFromRawValue } from '../unit-control';
+import { InputControlSuffixWrapperWithClickThrough } from '../select-control/styles/select-control-styles';
 
 const HANDLE_CLASS_NAME = 'components-resizable-box__handle';
 const SIDE_HANDLE_CLASS_NAME = 'components-resizable-box__side-handle';
@@ -330,94 +331,83 @@ const findClosestSnap = (
 const roundBy = ( value: number, size: number ): number =>
 	Math.round( value / size ) * size;
 
-// TODO: consider inlining this into getPixelMinMaxSize as it’s the only usage.
-const readConstraintsFromChildOf = (
-	parent: HTMLElement,
-	rules: CSSProperties
+const makeStyleRestorer = (
+	element: HTMLElement,
+	...propertyList: ( keyof CSSProperties )[]
 ) => {
-	const element = parent.ownerDocument.createElement( 'meta' );
-	element.style.display = 'block';
-	element.style.height = '100%';
-	element.style.position = 'absolute';
-	for ( const [ rule, value ] of Object.entries( rules ) ) {
-		element.style.setProperty( rule, value );
+	const entries: [ keyof CSSProperties, string ][] = [];
+	for ( const property of propertyList ) {
+		entries.push( [ property, element.style[ property ] ] );
 	}
-	parent.appendChild( element );
-	let widthValue;
-	let heightValue;
-	if ( 'width' in rules ) {
-		widthValue = element.offsetWidth;
-	}
-	if ( 'height' in rules ) {
-		heightValue = element.offsetHeight;
-	}
-	element.remove();
-	return [ widthValue, heightValue ] as Partial< Vector2 >;
+	return () => {
+		for ( const [ property, value ] of entries ) {
+			element.style[ property ] = value;
+		}
+	};
 };
 
 const hasNonPixelUnit = ( value: string ) => {
 	return value.endsWith( 'px' ) ? false : /\D$/.test( value );
 };
 
-const BUST_MIN_MAX = { min: '0px', max: '999999999px' };
-
 /**
  * Gets number of pixels for CSS `min-width`/`min-height` or `max-width`/`max-height`.
  * I.e. it converts string values like '5em' and '10%' to number (of pixels).
  */
-// TODO: This seems convoluted. It sets a dimension that’s expected to be limited by either
-// (min|max)(Width|Height) which is also set. It would seem that simply setting the dimension
-// to the limit’s value would suffice. No need to set two separate properties or derive the
-// limit’s property name. It would also be worth looking at what can be shared between this
-// and `getUnitMeasurements` with the aim of less code.
-const getPixelMinMaxSize = (
-	root: HTMLElement,
-	limit: 'min' | 'max',
-	values: [ string | number, string | number ]
-): Vector2 => {
-	const parent = root.parentElement;
-	// The parent should always be defined – maintains the return type anyway.
-	if ( ! parent ) {
-		return limit === 'min' ? [ 0, 0 ] : [ Infinity, Infinity ];
+const getPixelMinMax = (
+	element: HTMLElement,
+	maxHeight: string | number,
+	maxWidth: string | number,
+	minHeight: string | number,
+	minWidth: string | number
+): [ Vector2, Vector2 ] => {
+	const valueList = [ maxHeight, maxWidth, minHeight, minWidth ];
+	const { defaultView } = element.ownerDocument;
+	if ( ! defaultView ) {
+		return [
+			[ 0, 0 ],
+			[ Infinity, Infinity ],
+		];
 	}
-	const [ widthLimit, heightLimit ] = values;
-	let widthRules: undefined | CSSProperties;
-	if ( typeof widthLimit === 'string' && hasNonPixelUnit( widthLimit ) ) {
-		widthRules = {
-			width: BUST_MIN_MAX[ limit ],
-			[ `${ limit }-width` ]: widthLimit,
-		};
+	const restoreStyles = makeStyleRestorer( element, 'height', 'width' );
+	const measureProperties = [ 'height', 'width', 'height', 'width' ] as const;
+	const measuredValueList = [];
+	for ( const index in valueList ) {
+		const value = valueList[ index ];
+		if ( typeof value === 'string' && hasNonPixelUnit( value ) ) {
+			const measureProperty = measureProperties[ index ];
+			element.style[ measureProperty ] = value;
+			const pixelValue = parseFloat(
+				defaultView.getComputedStyle( element )[ measureProperty ]
+			);
+			measuredValueList[ parseInt( index ) ] = pixelValue;
+		}
 	}
-	let heightRules: undefined | CSSProperties;
-	if ( typeof heightLimit === 'string' && hasNonPixelUnit( heightLimit ) ) {
-		heightRules = {
-			height: BUST_MIN_MAX[ limit ],
-			[ `${ limit }-height` ]: heightLimit,
-		};
-	}
-	let readWidthLimit: number | undefined, readHeightLimit: number | undefined;
-	if ( widthRules || heightRules ) {
-		[ readWidthLimit, readHeightLimit ] = readConstraintsFromChildOf(
-			parent,
-			{
-				...widthRules,
-				...heightRules,
-			}
-		);
-	}
+	restoreStyles();
+	// Falls back to argument’s value where no DOM measure was made in which
+	// case it’s either a number or a string with 'px' unit. parseFloat is used
+	// for either because it doesn’t seem worthwhile to test the type again.
+	const [
+		pixelMaxHeight = parseFloat( maxHeight as string ),
+		pixelMaxWidth = parseFloat( maxWidth as string ),
+		pixelMinHeight = parseFloat( minHeight as string ),
+		pixelMinWidth = parseFloat( minWidth as string ),
+	] = measuredValueList;
 	return [
-		// widthLimit and heightLimit are only used if there was no need to read the dom
-		// and here should either be a number or a string with 'px' unit. parseFloat is
-		// used for either because it doesn’t seem worthwhile to test the type again.
-		readWidthLimit ?? parseFloat( widthLimit as string ),
-		readHeightLimit ?? parseFloat( heightLimit as string ),
+		[ pixelMinWidth, pixelMinHeight ],
+		[ pixelMaxWidth, pixelMaxHeight ],
 	];
 };
 
 // TODO: maybe it’s worthwhile to optimize for when the unit is the same in
 // both dimensions as only one measurement should need to be made.
-const getUnitMeasurements = ( size: Partial< Size >, element: HTMLElement ) => {
+const getUnitMeasures = ( size: Partial< Size >, element: HTMLElement ) => {
 	const specifics: SizeUnitMeasurements = {};
+	const { defaultView } = element.ownerDocument;
+	if ( ! defaultView ) {
+		return specifics;
+	}
+	const restoreStyles = makeStyleRestorer( element, 'height', 'width' );
 	for ( const [ dimensionKey, value ] of Object.entries( size ) as [
 		'width' | 'height',
 		string | false,
@@ -428,43 +418,23 @@ const getUnitMeasurements = ( size: Partial< Size >, element: HTMLElement ) => {
 		const [ usedValue, usedUnit ] =
 			parseQuantityAndUnitFromRawValue( value );
 		if ( usedUnit !== undefined && usedValue !== undefined ) {
-			const [ maxDimension, minDimension ]: [
-				'maxHeight' | 'maxWidth',
-				'minHeight' | 'minWidth',
-			] =
-				dimensionKey === 'width'
-					? [ 'maxWidth', 'minWidth' ]
-					: [ 'maxHeight', 'minHeight' ];
-			// TODO: it could be that the props for these could be relied upon instead of
-			// reading these from the DOM and assigning backups.
-			const backupMaxDimension = element.style[ maxDimension ];
-			const backupMinDimension = element.style[ minDimension ];
-			element.style[ maxDimension ] = element.style[ minDimension ] =
-				'unset !important';
-			const backupDimension = element.style[ dimensionKey ];
 			// Setting dimensions to 100 is seemingly unnecessary but may be worthwhile for
 			// greater precision of `pixelsPerUnit`.
 			element.style[ dimensionKey ] = `100${ usedUnit }`;
 			const computedDimension = parseFloat(
-				element.ownerDocument.defaultView?.getComputedStyle( element )[
-					dimensionKey
-				] ?? ''
+				defaultView.getComputedStyle( element )[ dimensionKey ]
 			);
-			if ( ! isNaN( computedDimension ) ) {
-				specifics[ dimensionKey ] = {
-					unit: usedUnit,
-					pixelsPerUnit: computedDimension / 100,
-				};
-			}
+			specifics[ dimensionKey ] = {
+				unit: usedUnit,
+				pixelsPerUnit: computedDimension / 100,
+			};
 			console.log( dimensionKey, 'with units', {
 				computedDimension,
 				...specifics[ dimensionKey ],
 			} );
-			element.style[ maxDimension ] = backupMaxDimension;
-			element.style[ minDimension ] = backupMinDimension;
-			element.style[ dimensionKey ] = backupDimension;
 		}
 	}
+	restoreStyles();
 	return specifics;
 };
 
@@ -485,6 +455,7 @@ const useDidChange = ( ...dependencies: unknown[] ) => {
 	return didChange;
 };
 
+// TODO: Have this only run/effect on resize stop.
 const useEffectSizeOnStop = ( size: ResizableProps[ 'size' ], key: string ) => {
 	const didSizePropWidthChange = useDidChange( size?.width );
 	const didSizePropHeightChange = useDidChange( size?.height );
@@ -498,6 +469,7 @@ const useEffectSizeOnStop = ( size: ResizableProps[ 'size' ], key: string ) => {
 			if ( ! didSizePropWidthChange || ! didSizePropHeightChange ) {
 				const { width = BASE_STYLE.width, height = BASE_STYLE.height } =
 					size || {};
+				console.log('effect size on stop', width, height )
 				setStyleSize( node, { width, height } );
 			}
 		},
@@ -556,30 +528,29 @@ function UnforwardedResizableBox(
 	} ) );
 	const sizeUnitsRef = useRef< SizeUnitMeasurements >( {} );
 	const constrainer: Constrainer = ( target, handleName ) => {
-		const min = getPixelMinMaxSize( target, 'min', [
-			minWidth,
-			minHeight,
-		] );
-		let max = getPixelMinMaxSize( target, 'max', [
-			maxWidth ?? Infinity,
+		const [ min, max ] = getPixelMinMax(
+			target,
 			maxHeight ?? Infinity,
-		] );
-		if ( propBounds ) {
-			max = getMaxFromBounds(
-				target,
-				propBounds,
-				handleName,
-				boundsByDirection,
-				scale,
-				...max
-			);
-		}
+			maxWidth ?? Infinity,
+			minHeight,
+			minWidth
+		);
+		const usedMax = propBounds
+			? getMaxFromBounds(
+					target,
+					propBounds,
+					handleName,
+					boundsByDirection,
+					scale,
+					...max
+			  )
+			: max;
 		// TODO: There may be a potential optimization if min and max are used to apply
 		// styles – /(min|max)-(width|height)/. Maybe clamping in the specializer could
 		// be avoided. Likely not worthwhile as it may be more complex given that the
 		// applied the styles would need to revert when not resizing because they could
 		// be specified with % or other non-pixel units.
-		return [ min, max ];
+		return [ min, usedMax ];
 	};
 	const specializer: Specializer = ( state ) => {
 		let [ xDiff, yDiff ] = state.difference;
@@ -702,7 +673,7 @@ function UnforwardedResizableBox(
 			// ref would be needed. Of course, the hook would also need to include
 			// the value in the state passed to specializer since that’s where this
 			// is used.
-			sizeUnitsRef.current = getUnitMeasurements(
+			sizeUnitsRef.current = getUnitMeasures(
 				size || defaultSize || {},
 				rootRef.current
 			);

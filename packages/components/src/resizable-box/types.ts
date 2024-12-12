@@ -3,7 +3,12 @@
  */
 import type * as React from 'react';
 
-export declare type Direction =
+/**
+ * Internal dependencies
+ */
+import type { ResizeTooltipProps } from './resize-tooltip';
+
+export type Direction =
 	| 'top'
 	| 'right'
 	| 'bottom'
@@ -12,6 +17,7 @@ export declare type Direction =
 	| 'bottomRight'
 	| 'bottomLeft'
 	| 'topLeft';
+
 export interface Enable {
 	top?: boolean;
 	right?: boolean;
@@ -22,6 +28,7 @@ export interface Enable {
 	bottomLeft?: boolean;
 	topLeft?: boolean;
 }
+
 export interface HandleStyles {
 	top?: React.CSSProperties;
 	right?: React.CSSProperties;
@@ -32,6 +39,7 @@ export interface HandleStyles {
 	bottomLeft?: React.CSSProperties;
 	topLeft?: React.CSSProperties;
 }
+
 export interface HandleClassName {
 	top?: string;
 	right?: string;
@@ -42,14 +50,17 @@ export interface HandleClassName {
 	bottomLeft?: string;
 	topLeft?: string;
 }
+
 export interface Size {
 	width: string | number;
 	height: string | number;
 }
+
 export interface NumberSize {
 	width: number;
 	height: number;
 }
+
 export interface HandleComponent {
 	top?: React.ReactElement< any >;
 	right?: React.ReactElement< any >;
@@ -60,18 +71,26 @@ export interface HandleComponent {
 	bottomLeft?: React.ReactElement< any >;
 	topLeft?: React.ReactElement< any >;
 }
-export declare type ResizeCallback = (
+
+export type ResizeCallback = (
 	event: MouseEvent | TouchEvent | KeyboardEvent | PointerEvent,
 	direction: Direction,
 	elementRef: HTMLElement,
 	delta: NumberSize
 ) => void;
-export declare type ResizeStartCallback = (
+
+export type ResizeStartCallback = (
 	event: MouseEvent | TouchEvent | KeyboardEvent | PointerEvent,
 	direction: Direction,
 	elementRef: HTMLElement
 ) => void | boolean;
-export interface ResizableProps {
+
+export interface ResizableBoxProps {
+	showHandle?: boolean;
+	__experimentalShowTooltip?: boolean;
+	__experimentalTooltipProps?: ResizeTooltipProps;
+
+	// The rest are the original props from re-resizable.
 	as?: string | React.ComponentType< any >;
 	style?: React.CSSProperties;
 	className?: string;
@@ -106,15 +125,8 @@ export interface ResizableProps {
 	scale?: number;
 	resizeRatio?: number;
 }
+
 export interface ImperativeHandle {
 	resizable: HTMLElement | null;
 	updateSize: ( size: Partial< Size > ) => void;
-}
-
-// TODO: can this be removed?
-declare global {
-	interface Window {
-		MouseEvent: typeof MouseEvent;
-		TouchEvent: typeof TouchEvent;
-	}
 }

@@ -14,7 +14,7 @@ import {
  * External dependencies
  */
 import clsx from 'clsx';
-import type { ReactNode, ForwardedRef, CSSProperties } from 'react';
+import type { ForwardedRef, CSSProperties } from 'react';
 import type { Vector2 } from '@use-gesture/react';
 
 /**
@@ -25,14 +25,13 @@ import type {
 	Direction,
 	ImperativeHandle,
 	ResizeCallback,
-	ResizableProps,
+	ResizableBoxProps,
 	Size,
 } from './types';
 import useResizableBox from './hook';
 import ResizeTooltip from './resize-tooltip';
 import { clamp } from '../utils/math';
 import { parseQuantityAndUnitFromRawValue } from '../unit-control';
-import { InputControlSuffixWrapperWithClickThrough } from '../select-control/styles/select-control-styles';
 
 const HANDLE_CLASS_NAME = 'components-resizable-box__handle';
 const SIDE_HANDLE_CLASS_NAME = 'components-resizable-box__side-handle';
@@ -192,16 +191,25 @@ const DEFAULT_HANDLE_STYLES = {
 const DEFAULT_GRID_WIDTH = 1;
 const DEFAULT_GRID_HEIGHT = 1;
 
-type ResizableBoxProps = ResizableProps & {
-	debug?: boolean;
-	children: ReactNode;
-	showHandle?: boolean;
-	__experimentalShowTooltip?: boolean;
-	__experimentalTooltipProps?: Parameters< typeof ResizeTooltip >[ 0 ];
-};
-
 type UnitMeasure = { unit: string; pixelsPerUnit: number };
 type SizeUnitMeasurements = { width?: UnitMeasure; height?: UnitMeasure };
+
+// The keys of only CSS properties from CSSStyleDeclaration.
+// modified from: https://github.com/microsoft/TypeScript/issues/17827#issuecomment-2008561761
+type CSSPropertyName = Exclude<
+	keyof Omit<
+		CSSStyleDeclaration,
+		| 'length'
+		| 'parentRule'
+		| 'getPropertyPriority'
+		| 'getPropertyValue'
+		| 'item'
+		| 'removeProperty'
+		| 'setProperty'
+		| typeof Symbol.iterator
+	>,
+	number
+>;
 
 const getAspectRatioBoundSize = (
 	ratio: number,
@@ -228,7 +236,7 @@ const getAspectRatioBoundSize = (
 // TODO: this might better be inlined into `getMaxFromBounds`.
 const getRectsForBounds = (
 	target: HTMLElement,
-	bounds: ResizableProps[ 'bounds' ],
+	bounds: ResizableBoxProps[ 'bounds' ],
 	scale: number
 ) => {
 	const adjustedScale = 1 / scale;
@@ -266,9 +274,9 @@ const isBoundsByDirectionApplicable = ( direction: Direction ) =>
 
 const getMaxFromBounds = (
 	target: HTMLElement,
-	bounds: ResizableProps[ 'bounds' ],
+	bounds: ResizableBoxProps[ 'bounds' ],
 	direction: Direction,
-	treatBoundsSanely: ResizableProps[ 'boundsByDirection' ],
+	treatBoundsSanely: ResizableBoxProps[ 'boundsByDirection' ],
 	scale: number,
 	maxWidth: number,
 	maxHeight: number
@@ -331,11 +339,13 @@ const findClosestSnap = (
 const roundBy = ( value: number, size: number ): number =>
 	Math.round( value / size ) * size;
 
+// TODO: So far this only gets used with 'width' and 'height' so it prolly
+// should just be made static – only operating on those two properties.
 const makeStyleRestorer = (
 	element: HTMLElement,
-	...propertyList: ( keyof CSSProperties )[]
+	...propertyList: CSSPropertyName[]
 ) => {
-	const entries: [ keyof CSSProperties, string ][] = [];
+	const entries: [ CSSPropertyName, string ][] = [];
 	for ( const property of propertyList ) {
 		entries.push( [ property, element.style[ property ] ] );
 	}
@@ -428,10 +438,6 @@ const getUnitMeasures = ( size: Partial< Size >, element: HTMLElement ) => {
 				unit: usedUnit,
 				pixelsPerUnit: computedDimension / 100,
 			};
-			console.log( dimensionKey, 'with units', {
-				computedDimension,
-				...specifics[ dimensionKey ],
-			} );
 		}
 	}
 	restoreStyles();
@@ -456,7 +462,10 @@ const useDidChange = ( ...dependencies: unknown[] ) => {
 };
 
 // TODO: Have this only run/effect on resize stop.
-const useEffectSizeOnStop = ( size: ResizableProps[ 'size' ], key: string ) => {
+const useEffectSizeOnStop = (
+	size: ResizableBoxProps[ 'size' ],
+	key: string
+) => {
 	const didSizePropWidthChange = useDidChange( size?.width );
 	const didSizePropHeightChange = useDidChange( size?.height );
 	// When the component is controlled (the `size` prop is specified) the `size` prop
@@ -469,7 +478,6 @@ const useEffectSizeOnStop = ( size: ResizableProps[ 'size' ], key: string ) => {
 			if ( ! didSizePropWidthChange || ! didSizePropHeightChange ) {
 				const { width = BASE_STYLE.width, height = BASE_STYLE.height } =
 					size || {};
-				console.log('effect size on stop', width, height )
 				setStyleSize( node, { width, height } );
 			}
 		},
@@ -480,7 +488,6 @@ const useEffectSizeOnStop = ( size: ResizableProps[ 'size' ], key: string ) => {
 
 function UnforwardedResizableBox(
 	{
-		debug,
 		as: TagOrComponent = 'div',
 		bounds: propBounds,
 		boundsByDirection,

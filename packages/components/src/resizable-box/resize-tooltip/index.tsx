@@ -17,7 +17,7 @@ import type { Axis, Position } from './utils';
 import { useResizeLabel, POSITIONS } from './utils';
 import { Root } from './styles/resize-tooltip.styles';
 
-type ResizeTooltipProps = React.ComponentProps< typeof Root > & {
+export type ResizeTooltipProps = React.ComponentProps< typeof Root > & {
 	'aria-hidden'?: boolean;
 	axis?: Axis;
 	className?: string;

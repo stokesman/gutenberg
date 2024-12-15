@@ -5,9 +5,8 @@ import { useMergeRefs, useRefEffect } from '@wordpress/compose';
 import {
 	forwardRef,
 	useImperativeHandle,
-	useMemo,
+	useReducer,
 	useRef,
-	useState,
 } from '@wordpress/element';
 
 /**
@@ -455,35 +454,31 @@ const setStyleSize = ( node: HTMLElement, nextSize: Partial< Size > ) => {
 	}
 };
 
-const useDidChange = ( ...dependencies: unknown[] ) => {
-	let didChange = false;
-	useMemo( () => void ( didChange = true ), dependencies );
-	return didChange;
-};
-
-// TODO: Have this only run/effect on resize stop.
-const useEffectSizeOnStop = (
-	size: ResizableBoxProps[ 'size' ],
-	key: string
-) => {
-	const didSizePropWidthChange = useDidChange( size?.width );
-	const didSizePropHeightChange = useDidChange( size?.height );
-	// When the component is controlled (the `size` prop is specified) the `size` prop
-	// will typically have changed values (at least once the resize has stopped) yet in
-	// case they do not change they must still be applied once resizing stops. Otherwise,
-	// the “uncontrolled” size from the user resize will persist. If the `size` prop’s
-	// values have changed nothing needs to be done because React will apply them.
-	const effectSizeOnStop = useRefEffect< HTMLElement >(
+// When the `size` prop is specified its values will typically be expected to change
+// with resizes. In case they don’t change after resizing stops, they have to be applied
+// imperativly so the “uncontrolled” size from the user resize does not persist. If the
+// values have changed nothing needs to be done because React will have applied them.
+const useEffectControlledSize = ( size: ResizableBoxProps[ 'size' ] ) => {
+	const [ key, rekey ] = useReducer( () => Symbol(), Symbol() );
+	const priorsRef = useRef( { size, key } );
+	const effect = useRefEffect< HTMLElement >(
 		( node ) => {
-			if ( ! didSizePropWidthChange || ! didSizePropHeightChange ) {
+			if ( key !== priorsRef.current.key ) {
+				const { width: priorWidth, height: priorHeight } =
+					priorsRef.current.size || {};
 				const { width = BASE_STYLE.width, height = BASE_STYLE.height } =
 					size || {};
-				setStyleSize( node, { width, height } );
+				setStyleSize( node, {
+					width: size?.width === priorWidth ? width : undefined,
+					height: size?.height === priorHeight ? height : undefined,
+				} );
+				priorsRef.current.key = key;
 			}
+			priorsRef.current.size = size;
 		},
-		[ didSizePropWidthChange, didSizePropHeightChange, key ]
+		[ key, size ]
 	);
-	return size ? effectSizeOnStop : null;
+	return size ? ( [ effect, rekey ] as const ) : ( [ null ] as const );
 };
 
 function UnforwardedResizableBox(
@@ -664,7 +659,8 @@ function UnforwardedResizableBox(
 			} );
 		}
 	};
-	const [ userSizeKey, setUserSizeKey ] = useState( '' );
+	const [ effectControlledSize, flagUncontrolledSize ] =
+		useEffectControlledSize( size );
 	const adaptedResizeStop = makeResizeCallbackAdapter( onResizeStop );
 	const [ resizableRef, bindResizableHandle ] = useResizableBox( {
 		constraints: constrainer,
@@ -687,12 +683,11 @@ function UnforwardedResizableBox(
 		},
 		onResizeStop: ( state ) => {
 			adaptedResizeStop( state );
+			const [ fromWidth, fromHeight ] = state.startSize;
 			const [ toWidth, toHeight ] = state.size;
-			// re-resizable sets its internal size state to that of the `size` prop after
-			// resizing stops and thereby flushes any state changes made while resizing.
-			// This leads to the same effect. The specific value set here isn’t important
-			// just whether it differs and therby causes a render.
-			setUserSizeKey( `${ toWidth }/${ toHeight }` );
+			if ( fromWidth !== toWidth || fromHeight !== toHeight ) {
+				flagUncontrolledSize?.();
+			}
 		},
 		specializer,
 	} );
@@ -736,7 +731,6 @@ function UnforwardedResizableBox(
 			/>
 		);
 	}
-	const effectSizeOnStop = useEffectSizeOnStop( size, userSizeKey );
 	return (
 		<TagOrComponent
 			className={ clsx(
@@ -744,7 +738,11 @@ function UnforwardedResizableBox(
 				showHandle && 'has-show-handle',
 				className
 			) }
-			ref={ useMergeRefs( [ rootRef, resizableRef, effectSizeOnStop ] ) }
+			ref={ useMergeRefs( [
+				rootRef,
+				resizableRef,
+				effectControlledSize,
+			] ) }
 			style={ {
 				...BASE_STYLE,
 				...style,

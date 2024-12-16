@@ -38,36 +38,28 @@ const ResizableSpacer = ( {
 	...props
 } ) => {
 	const getCurrentSize = ( elt ) => {
-		return orientation === 'horizontal'
-			? elt.clientWidth
-			: elt.clientHeight;
-	};
-
-	const getNextVal = ( elt ) => {
-		return `${ getCurrentSize( elt ) }px`;
+		return elt.style[ orientation === 'horizontal' ? 'width' : 'height' ];
 	};
 
 	return (
 		<ResizableBox
 			className={ clsx( 'block-library-spacer__resize-container', {
 				'resize-horizontal': orientation === 'horizontal',
-				'is-resizing': isResizing,
 				'is-selected': isSelected,
 			} ) }
 			onResizeStart={ ( _event, _direction, elt ) => {
-				const nextVal = getNextVal( elt );
+				const nextVal = getCurrentSize( elt );
 				onResizeStart( nextVal );
-				onResize( nextVal );
+				// onResize( nextVal ); // Why also call this here?
 			} }
 			onResize={ ( _event, _direction, elt ) => {
-				onResize( getNextVal( elt ) );
+				onResize( getCurrentSize( elt ) );
 				if ( ! isResizing ) {
 					setIsResizing( true );
 				}
 			} }
 			onResizeStop={ ( _event, _direction, elt ) => {
-				const nextVal = getCurrentSize( elt );
-				onResizeStop( `${ nextVal }px` );
+				onResizeStop( getCurrentSize( elt ) );
 				setIsResizing( false );
 			} }
 			__experimentalShowTooltip
@@ -207,6 +199,7 @@ const SpacerEdit = ( {
 		if ( blockOrientation === 'horizontal' ) {
 			return (
 				<ResizableSpacer
+					size={ { width: style.width || style.flexBasis } }
 					minWidth={ MIN_SPACER_SIZE }
 					enable={ {
 						top: false,
@@ -232,6 +225,7 @@ const SpacerEdit = ( {
 		return (
 			<>
 				<ResizableSpacer
+					size={ { height: style.height || style.flexBasis } }
 					minHeight={ MIN_SPACER_SIZE }
 					enable={ {
 						top: false,

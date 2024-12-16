@@ -6,13 +6,11 @@ import {
 	InspectorControls,
 	useSettings,
 	__experimentalSpacingSizesControl as SpacingSizesControl,
-	isValueSpacingPreset,
 	privateApis as blockEditorPrivateApis,
 } from '@wordpress/block-editor';
 import {
 	__experimentalUseCustomUnits as useCustomUnits,
 	__experimentalUnitControl as UnitControl,
-	__experimentalParseQuantityAndUnitFromRawValue as parseQuantityAndUnitFromRawValue,
 	__experimentalToolsPanel as ToolsPanel,
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
@@ -27,7 +25,7 @@ import { MIN_SPACER_SIZE } from './constants';
 
 const { useSpacingSizes } = unlock( blockEditorPrivateApis );
 
-function DimensionInput( { label, onChange, isResizing, value = '' } ) {
+function DimensionInput( { label, onChange, value = '' } ) {
 	const inputId = useInstanceId( UnitControl, 'block-spacer-height-input' );
 	const spacingSizes = useSpacingSizes();
 	const [ spacingUnits ] = useSettings( 'spacing.units' );
@@ -47,13 +45,6 @@ function DimensionInput( { label, onChange, isResizing, value = '' } ) {
 		onChange( unprocessedValue.all );
 	};
 
-	// Force the unit to update to `px` when the Spacer is being resized.
-	const [ parsedQuantity, parsedUnit ] =
-		parseQuantityAndUnitFromRawValue( value );
-	const computedValue = isValueSpacingPreset( value )
-		? value
-		: [ parsedQuantity, isResizing ? 'px' : parsedUnit ].join( '' );
-
 	return (
 		<>
 			{ ( ! spacingSizes || spacingSizes?.length === 0 ) && (
@@ -62,7 +53,7 @@ function DimensionInput( { label, onChange, isResizing, value = '' } ) {
 					isResetValueOnUnitChange
 					min={ MIN_SPACER_SIZE }
 					onChange={ handleOnChange }
-					value={ computedValue }
+					value={ value }
 					units={ units }
 					label={ label }
 					__next40pxDefaultSize
@@ -71,7 +62,7 @@ function DimensionInput( { label, onChange, isResizing, value = '' } ) {
 			{ spacingSizes?.length > 0 && (
 				<View className="tools-panel-item-spacing">
 					<SpacingSizesControl
-						values={ { all: computedValue } }
+						values={ { all: value } }
 						onChange={ handleOnChange }
 						label={ label }
 						sides={ [ 'all' ] }

@@ -444,11 +444,12 @@ const getUnitMeasures = ( size: Partial< Size >, element: HTMLElement ) => {
 };
 
 const setStyleSize = ( node: HTMLElement, nextSize: Partial< Size > ) => {
-	const { height = false, width = false } = nextSize;
-	if ( width !== false ) {
+	const { height, width } = nextSize;
+	// Browsers noop on undefined values but these conditionals appease typing.
+	if ( width !== undefined ) {
 		node.style.width = typeof width === 'number' ? `${ width }px` : width;
 	}
-	if ( height !== false ) {
+	if ( height !== undefined ) {
 		node.style.height =
 			typeof height === 'number' ? `${ height }px` : height;
 	}

@@ -206,13 +206,7 @@ function Layout() {
 							{ canvasResizer }
 							{ !! canvasSize.width && (
 								<div
-									className={ clsx(
-										'edit-site-layout__canvas',
-										{
-											'is-right-aligned':
-												isResizableFrameOversized,
-										}
-									) }
+									className="edit-site-layout__canvas"
 									ref={ animationRef }
 								>
 									<ErrorBoundary>
@@ -222,7 +216,7 @@ function Layout() {
 											defaultSize={ {
 												width:
 													canvasSize.width -
-													24 /* $canvas-padding */,
+													16 /* $canvas-padding – applies to one side */,
 												height: canvasSize.height,
 											} }
 											isOversized={

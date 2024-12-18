@@ -97,12 +97,9 @@
 	bottom: 0;
 	width: 100%;
 	display: flex;
-	justify-content: center;
+	// Makes the resizable frame align and grow as expected when oversized.
+	justify-content: flex-end;
 	align-items: center;
-
-	&.is-right-aligned {
-		justify-content: flex-end;
-	}
 
 	.edit-site-resizable-frame__inner {
 		color: $gray-900;

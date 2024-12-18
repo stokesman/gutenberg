@@ -1,18 +1,17 @@
 /**
- * External dependencies
- */
-import clsx from 'clsx';
-
-/**
  * WordPress dependencies
  */
 import { useState, useRef } from '@wordpress/element';
 import {
-	ResizableBox,
 	Tooltip,
 	__unstableMotion as motion,
+	privateApis as componentsPrivateApis,
 } from '@wordpress/components';
-import { useInstanceId, useReducedMotion } from '@wordpress/compose';
+import {
+	useInstanceId,
+	useMergeRefs,
+	useReducedMotion,
+} from '@wordpress/compose';
 import { __, isRTL } from '@wordpress/i18n';
 import { privateApis as routerPrivateApis } from '@wordpress/router';
 import { useSelect } from '@wordpress/data';
@@ -24,20 +23,9 @@ import { store as coreStore } from '@wordpress/core-data';
 import { unlock } from '../../lock-unlock';
 import { addQueryArgs } from '@wordpress/url';
 
+/** @type {import('../../../../components/src/resizable-box/hook.ts').default} */
+const useResizableBox = unlock( componentsPrivateApis ).useResizableBox;
 const { useLocation, useHistory } = unlock( routerPrivateApis );
-
-// Removes the inline styles in the drag handles.
-const HANDLE_STYLES_OVERRIDE = {
-	position: undefined,
-	userSelect: undefined,
-	cursor: undefined,
-	width: undefined,
-	height: undefined,
-	top: undefined,
-	right: undefined,
-	bottom: undefined,
-	left: undefined,
-};
 
 // The minimum width of the frame (in px) while resizing.
 const FRAME_MIN_WIDTH = 320;
@@ -86,7 +74,7 @@ function ResizableFrame( {
 	setIsOversized,
 	isReady,
 	children,
-	/** The default (unresized) width/height of the frame, based on the space availalbe in the viewport. */
+	/** The default (unresized) width/height availalbe in the parent. */
 	defaultSize,
 	innerContentStyle,
 } ) {
@@ -94,14 +82,13 @@ function ResizableFrame( {
 	const { path, query } = useLocation();
 	const { canvas = 'view' } = query;
 	const disableMotion = useReducedMotion();
-	const [ frameSize, setFrameSize ] = useState( INITIAL_FRAME_SIZE );
-	// The width of the resizable frame when a new resize gesture starts.
-	const [ startingWidth, setStartingWidth ] = useState();
+	const [ frameHeight, setFrameHeight ] = useState(
+		INITIAL_FRAME_SIZE.height
+	);
+	const [ maxOversizeWidth, setMaxOversizeWidth ] = useState();
 	const [ isResizing, setIsResizing ] = useState( false );
 	const [ shouldShowHandle, setShouldShowHandle ] = useState( false );
-	const [ resizeRatio, setResizeRatio ] = useState( 1 );
 
-	const FRAME_TRANSITION = { type: 'tween', duration: isResizing ? 0 : 0.5 };
 	const frameRef = useRef( null );
 	const resizableHandleHelpId = useInstanceId(
 		ResizableFrame,
@@ -113,144 +100,141 @@ function ResizableFrame( {
 		return getCurrentTheme()?.is_block_theme;
 	}, [] );
 
-	const handleResizeStart = ( _event, _direction, ref ) => {
-		// Remember the starting width so we don't have to get `ref.offsetWidth` on
-		// every resize event thereafter, which will cause layout thrashing.
-		setStartingWidth( ref.offsetWidth );
-		setIsResizing( true );
-	};
-
-	// Calculate the frame size based on the window width as its resized.
-	const handleResize = ( _event, _direction, _ref, delta ) => {
-		const normalizedDelta = delta.width / resizeRatio;
-		const deltaAbs = Math.abs( normalizedDelta );
-		const maxDoubledDelta =
-			delta.width < 0 // is shrinking
-				? deltaAbs
-				: ( defaultSize.width - startingWidth ) / 2;
-		const deltaToDouble = Math.min( deltaAbs, maxDoubledDelta );
-		const doubleSegment = deltaAbs === 0 ? 0 : deltaToDouble / deltaAbs;
-		const singleSegment = 1 - doubleSegment;
-
-		setResizeRatio( singleSegment + doubleSegment * 2 );
-
-		const updatedWidth = startingWidth + delta.width;
-
-		setIsOversized( updatedWidth > defaultSize.width );
-
-		// Width will be controlled by the library (via `resizeRatio`),
-		// so we only need to update the height.
-		setFrameSize( {
-			height: isOversized
-				? '100%'
-				: calculateNewHeight( updatedWidth, defaultAspectRatio ),
-		} );
-	};
-
-	const handleResizeStop = ( _event, _direction, ref ) => {
-		setIsResizing( false );
-
-		if ( ! isOversized ) {
-			return;
-		}
-
-		setIsOversized( false );
-
-		const remainingWidth =
-			ref.ownerDocument.documentElement.offsetWidth - ref.offsetWidth;
-
-		if (
-			remainingWidth > SNAP_TO_EDIT_CANVAS_MODE_THRESHOLD ||
-			! isBlockTheme
-		) {
-			// Reset the initial aspect ratio if the frame is resized slightly
-			// above the sidebar but not far enough to trigger full screen.
-			setFrameSize( INITIAL_FRAME_SIZE );
-		} else {
-			// Trigger full screen if the frame is resized far enough to the left.
-			history.navigate(
-				addQueryArgs( path, {
-					canvas: 'edit',
-				} ),
-				{
-					transition: 'canvas-mode-edit-transition',
-				}
+	const [ setResizable, bindResizableHandle ] = useResizableBox( {
+		specializer: ( { difference: [ xDiff ], from: [ fromWidth ] } ) => {
+			const undersizeRange = ( defaultSize.width - fromWidth ) / 2;
+			const [ resizeRatio, xDiffBase ] =
+				xDiff > undersizeRange ? [ 1, undersizeRange ] : [ 2, 0 ];
+			const newWidth = Math.max(
+				fromWidth + xDiffBase + xDiff * resizeRatio,
+				FRAME_MIN_WIDTH
 			);
-		}
-	};
+			const newHeight = calculateNewHeight(
+				newWidth,
+				defaultAspectRatio
+			);
+			const exceedsDefaultWidth = newWidth > defaultSize.width;
+			setIsOversized( exceedsDefaultWidth );
+			return {
+				size: [ newWidth, newHeight ],
+				styleSize: [
+					undefined,
+					exceedsDefaultWidth ? '100%' : undefined,
+				],
+			};
+		},
+		onResizeStart: () => {
+			setIsResizing( true );
+			const { documentElement } = frameRef.current.ownerDocument;
+			setMaxOversizeWidth(
+				documentElement.offsetWidth - 32 // 32 accounts for canvas “padding”.
+			);
+		},
+		onResizeStop: ( { size: [ width, height ] } ) => {
+			setIsResizing( false );
+			setFrameHeight( height );
 
-	// Handle resize by arrow keys
-	const handleResizableHandleKeyDown = ( event ) => {
-		if ( ! [ 'ArrowLeft', 'ArrowRight' ].includes( event.key ) ) {
-			return;
-		}
+			if ( width <= defaultSize.width ) {
+				return;
+			}
 
-		event.preventDefault();
+			const remainingWidth = maxOversizeWidth - width;
 
-		const step = 20 * ( event.shiftKey ? 5 : 1 );
-		const delta =
-			step *
-			( event.key === 'ArrowLeft' ? 1 : -1 ) *
-			( isRTL() ? -1 : 1 );
-		const newWidth = Math.min(
-			Math.max(
-				FRAME_MIN_WIDTH,
-				frameRef.current.resizable.offsetWidth + delta
-			),
-			defaultSize.width
-		);
-
-		setFrameSize( {
-			width: newWidth,
-			height: calculateNewHeight( newWidth, defaultAspectRatio ),
-		} );
-	};
+			if (
+				remainingWidth > SNAP_TO_EDIT_CANVAS_MODE_THRESHOLD ||
+				! isBlockTheme
+			) {
+				// Reset the initial aspect ratio if the frame is resized slightly
+				// above the sidebar but not far enough to trigger full screen.
+				Object.assign( frameRef.current.style, INITIAL_FRAME_SIZE );
+				setFrameHeight( INITIAL_FRAME_SIZE.height );
+			} else {
+				// Trigger full screen if the frame is resized far enough to the left.
+				history.navigate(
+					addQueryArgs( path, {
+						canvas: 'edit',
+					} ),
+					{
+						transition: 'canvas-mode-edit-transition',
+					}
+				);
+			}
+		},
+	} );
 
 	const frameAnimationVariants = {
 		default: {
 			flexGrow: 0,
-			height: frameSize.height,
+			height: [ frameHeight ],
 		},
 		fullWidth: {
 			flexGrow: 1,
-			height: frameSize.height,
+			height: '100%',
 		},
 	};
 
 	const resizeHandleVariants = {
 		hidden: {
 			opacity: 0,
-			...( isRTL() ? { right: 0 } : { left: 0 } ),
+			x: 0,
 		},
 		visible: {
 			opacity: 1,
 			// Account for the handle's width.
-			...( isRTL() ? { right: -14 } : { left: -14 } ),
+			x: isRTL() ? 14 : -14,
 		},
 		active: {
 			opacity: 1,
 			// Account for the handle's width.
-			...( isRTL() ? { right: -14 } : { left: -14 } ),
+			x: isRTL() ? 14 : -14,
 			scaleY: 1.3,
 		},
 	};
-	const currentResizeHandleVariant = ( () => {
-		if ( isResizing ) {
-			return 'active';
-		}
-		return shouldShowHandle ? 'visible' : 'hidden';
-	} )();
+
+	// Resizing will be disabled until the editor content is loaded.
+	const handle = isReady && canvas === 'view' && (
+		<>
+			<Tooltip text={ __( 'Drag to resize' ) }>
+				{ /* Disable reason: role="separator" does in fact support aria-valuenow */ }
+				{ /* eslint-disable-next-line jsx-a11y/role-supports-aria-props */ }
+				<motion.button
+					key="handle"
+					role="separator"
+					aria-orientation="vertical"
+					className="edit-site-resizable-frame__handle"
+					variants={ resizeHandleVariants }
+					animate={ shouldShowHandle ? 'visible' : 'hidden' }
+					aria-label={ __( 'Drag to resize' ) }
+					aria-describedby={ resizableHandleHelpId }
+					aria-valuenow={ frameRef.current?.offsetWidth || undefined }
+					aria-valuemin={ FRAME_MIN_WIDTH }
+					aria-valuemax={ defaultSize.width }
+					initial="hidden"
+					exit="hidden"
+					whileFocus="active"
+					whileHover="active"
+					{ ...bindResizableHandle( isRTL() ? 'right' : 'left' ) }
+				/>
+			</Tooltip>
+			<div hidden id={ resizableHandleHelpId }>
+				{ __(
+					'Use left and right arrow keys to resize the canvas. Hold shift to resize in larger increments.'
+				) }
+			</div>
+		</>
+	);
 
 	return (
-		<ResizableBox
-			as={ motion.div }
-			ref={ frameRef }
+		<motion.div
+			ref={ useMergeRefs( [ frameRef, setResizable ] ) }
 			initial={ false }
 			variants={ frameAnimationVariants }
 			animate={ isFullWidth ? 'fullWidth' : 'default' }
 			onAnimationComplete={ ( definition ) => {
 				if ( definition === 'fullWidth' ) {
-					setFrameSize( { width: '100%', height: '100%' } );
+					setIsOversized( false );
+					Object.assign( frameRef.current.style, INITIAL_FRAME_SIZE );
+					setFrameHeight( INITIAL_FRAME_SIZE.height );
 				}
 			} }
 			whileHover={
@@ -264,87 +248,26 @@ function ResizableFrame( {
 					  }
 					: {}
 			}
-			transition={ FRAME_TRANSITION }
-			size={ frameSize }
-			enable={ {
-				top: false,
-				bottom: false,
-				// Resizing will be disabled until the editor content is loaded.
-				...( isRTL()
-					? { right: isReady, left: false }
-					: { left: isReady, right: false } ),
-				topRight: false,
-				bottomRight: false,
-				bottomLeft: false,
-				topLeft: false,
-			} }
-			resizeRatio={ resizeRatio }
-			handleClasses={ undefined }
-			handleStyles={ {
-				left: HANDLE_STYLES_OVERRIDE,
-				right: HANDLE_STYLES_OVERRIDE,
-			} }
-			minWidth={ FRAME_MIN_WIDTH }
-			maxWidth={ isFullWidth ? '100%' : '150%' }
-			maxHeight="100%"
+			transition={ { type: 'tween', duration: 0.5 } }
 			onFocus={ () => setShouldShowHandle( true ) }
 			onBlur={ () => setShouldShowHandle( false ) }
 			onMouseOver={ () => setShouldShowHandle( true ) }
 			onMouseOut={ () => setShouldShowHandle( false ) }
-			handleComponent={ {
-				[ isRTL() ? 'right' : 'left' ]: canvas === 'view' && (
-					<>
-						<Tooltip text={ __( 'Drag to resize' ) }>
-							{ /* Disable reason: role="separator" does in fact support aria-valuenow */ }
-							{ /* eslint-disable-next-line jsx-a11y/role-supports-aria-props */ }
-							<motion.button
-								key="handle"
-								role="separator"
-								aria-orientation="vertical"
-								className={ clsx(
-									'edit-site-resizable-frame__handle',
-									{ 'is-resizing': isResizing }
-								) }
-								variants={ resizeHandleVariants }
-								animate={ currentResizeHandleVariant }
-								aria-label={ __( 'Drag to resize' ) }
-								aria-describedby={ resizableHandleHelpId }
-								aria-valuenow={
-									frameRef.current?.resizable?.offsetWidth ||
-									undefined
-								}
-								aria-valuemin={ FRAME_MIN_WIDTH }
-								aria-valuemax={ defaultSize.width }
-								onKeyDown={ handleResizableHandleKeyDown }
-								initial="hidden"
-								exit="hidden"
-								whileFocus="active"
-								whileHover="active"
-							/>
-						</Tooltip>
-						<div hidden id={ resizableHandleHelpId }>
-							{ __(
-								'Use left and right arrow keys to resize the canvas. Hold shift to resize in larger increments.'
-							) }
-						</div>
-					</>
-				),
+			className="edit-site-resizable-frame__inner"
+			style={ {
+				...INITIAL_FRAME_SIZE,
+				minWidth: FRAME_MIN_WIDTH,
+				maxWidth: isResizing || isOversized ? maxOversizeWidth : '100%',
 			} }
-			onResizeStart={ handleResizeStart }
-			onResize={ handleResize }
-			onResizeStop={ handleResizeStop }
-			className={ clsx( 'edit-site-resizable-frame__inner', {
-				'is-resizing': isResizing,
-			} ) }
-			showHandle={ false } // Do not show the default handle, as we're using a custom one.
 		>
+			{ handle }
 			<div
 				className="edit-site-resizable-frame__inner-content"
 				style={ innerContentStyle }
 			>
 				{ children }
 			</div>
-		</ResizableBox>
+		</motion.div>
 	);
 }
 

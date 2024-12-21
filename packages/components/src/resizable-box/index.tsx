@@ -187,8 +187,7 @@ const DEFAULT_HANDLE_STYLES = {
 	bottomLeft: HANDLE_STYLES_OVERRIDES,
 };
 
-const DEFAULT_GRID_WIDTH = 1;
-const DEFAULT_GRID_HEIGHT = 1;
+const DEFAULT_GRID_VALUE = 1;
 
 type UnitMeasure = { unit: string; pixelsPerUnit: number };
 type SizeUnitMeasurements = { width?: UnitMeasure; height?: UnitMeasure };
@@ -491,7 +490,7 @@ function UnforwardedResizableBox(
 		children,
 		defaultSize,
 		enable,
-		grid: [ xGrid, yGrid ] = [ DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT ],
+		grid: [ xGrid, yGrid ] = [ DEFAULT_GRID_VALUE, DEFAULT_GRID_VALUE ],
 		handleComponent,
 		handleStyles = DEFAULT_HANDLE_STYLES,
 		handleWrapperClass,
@@ -597,7 +596,7 @@ function UnforwardedResizableBox(
 		if ( snap && snap.y ) {
 			newHeight = findClosestSnap( newHeight, snap.y, snapGap );
 		}
-		if ( xGrid !== DEFAULT_GRID_WIDTH || yGrid !== DEFAULT_GRID_HEIGHT ) {
+		if ( xGrid !== DEFAULT_GRID_VALUE || yGrid !== DEFAULT_GRID_VALUE ) {
 			const newGridWidth = roundBy( newWidth, xGrid );
 			const newGridHeight = roundBy( newHeight, yGrid );
 			const gap = snapGap || 0;

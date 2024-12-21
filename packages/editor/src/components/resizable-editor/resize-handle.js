@@ -1,38 +1,14 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
-import { LEFT, RIGHT } from '@wordpress/keycodes';
+import { __, isRTL } from '@wordpress/i18n';
 import {
 	VisuallyHidden,
 	Tooltip,
 	__unstableMotion as motion,
 } from '@wordpress/components';
 
-const DELTA_DISTANCE = 20; // The distance to resize per keydown in pixels.
-
-export default function ResizeHandle( { direction, resizeWidthBy } ) {
-	function handleKeyDown( event ) {
-		const { keyCode } = event;
-
-		if ( keyCode !== LEFT && keyCode !== RIGHT ) {
-			return;
-		}
-		event.preventDefault();
-
-		if (
-			( direction === 'left' && keyCode === LEFT ) ||
-			( direction === 'right' && keyCode === RIGHT )
-		) {
-			resizeWidthBy( DELTA_DISTANCE );
-		} else if (
-			( direction === 'left' && keyCode === RIGHT ) ||
-			( direction === 'right' && keyCode === LEFT )
-		) {
-			resizeWidthBy( -DELTA_DISTANCE );
-		}
-	}
-
+export default function ResizeHandle( { side, binder } ) {
 	const resizeHandleVariants = {
 		active: {
 			opacity: 1,
@@ -40,16 +16,19 @@ export default function ResizeHandle( { direction, resizeWidthBy } ) {
 		},
 	};
 
-	const resizableHandleHelpId = `resizable-editor__resize-help-${ direction }`;
+	const resizableHandleHelpId = `resizable-editor__resize-help-${ side }`;
+
+	const { [ side ]: direction } = isRTL()
+		? { start: 'right', end: 'left' }
+		: { start: 'left', end: 'right' };
 
 	return (
 		<>
 			<Tooltip text={ __( 'Drag to resize' ) }>
 				<motion.button
-					className={ `editor-resizable-editor__resize-handle is-${ direction }` }
+					className={ `editor-resizable-editor__resize-handle is-${ side }` }
 					aria-label={ __( 'Drag to resize' ) }
 					aria-describedby={ resizableHandleHelpId }
-					onKeyDown={ handleKeyDown }
 					variants={ resizeHandleVariants }
 					whileFocus="active"
 					whileHover="active"
@@ -57,6 +36,7 @@ export default function ResizeHandle( { direction, resizeWidthBy } ) {
 					key="handle"
 					role="separator"
 					aria-orientation="vertical"
+					{ ...binder( direction ) }
 				/>
 			</Tooltip>
 			<VisuallyHidden id={ resizableHandleHelpId }>

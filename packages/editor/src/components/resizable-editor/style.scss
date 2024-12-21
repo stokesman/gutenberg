@@ -1,14 +1,15 @@
 // To hide the horizontal scrollbar and show the drag handle on the
 // left and right of the container.
 .editor-resizable-editor.is-resizable {
+	position: relative;
 	overflow: visible;
 	margin: 0 auto;
 }
 
 .editor-resizable-editor__resize-handle {
+	touch-action: none;
 	position: absolute;
-	top: 0;
-	bottom: 0;
+	inset: 0;
 	padding: 0;
 	margin: auto 0;
 	width: $grid-unit-15;
@@ -32,14 +33,14 @@
 		border-radius: $radius-full;
 	}
 
-	&.is-left {
+	&.is-start {
 		// Subtract half of the handle width to properly center.
-		left: -$grid-unit-20 - math.div($grid-unit-05, 2);
+		inset-inline: -$grid-unit-20 - math.div($grid-unit-05, 2) auto;
 	}
 
-	&.is-right {
+	&.is-end {
 		// Subtract half of the handle width to properly center.
-		right: -$grid-unit-20 - math.div($grid-unit-05, 2);
+		inset-inline: auto #{-$grid-unit-20 - math.div($grid-unit-05, 2)};
 	}
 
 	&:hover,

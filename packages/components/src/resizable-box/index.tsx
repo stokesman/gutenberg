@@ -547,11 +547,6 @@ function UnforwardedResizableBox(
 					...max
 			  )
 			: max;
-		// TODO: There may be a potential optimization if min and max are used to apply
-		// styles – /(min|max)-(width|height)/. Maybe clamping in the specializer could
-		// be avoided. Likely not worthwhile as it may be more complex given that the
-		// applied the styles would need to revert when not resizing because they could
-		// be specified with % or other non-pixel units.
 		return [ min, usedMax ];
 	};
 	const specializer: Specializer = ( state ) => {
@@ -620,12 +615,6 @@ function UnforwardedResizableBox(
 				extraWidth,
 				[ min, max ]
 			);
-		} else {
-			const [ wMin, hMin ] = min;
-			const [ wMax, hMax ] = max;
-			newWidth = xDiff !== 0 ? clamp( newWidth, wMin, wMax ) : undefined;
-			newHeight =
-				yDiff !== 0 ? clamp( newHeight, hMin, hMax ) : undefined;
 		}
 		// Converts values to unitized strings. Applicable only if `size` or `defaultSize`
 		// had a non-pixel unit.

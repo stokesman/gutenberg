@@ -77,6 +77,7 @@ import useNavigateToEntityRecord from '../../hooks/use-navigate-to-entity-record
 import { useMetaBoxInitialization } from '../meta-boxes/use-meta-box-initialization';
 
 const { getLayoutStyles } = unlock( blockEditorPrivateApis );
+/** @type {unknown & { useResizableBox: import('../../../../components/src/resizable-box/hook.ts').default}} */
 const { useResizableBox } = unlock( componentsPrivateApis );
 const { useCommands } = unlock( coreCommandsPrivateApis );
 const { useCommandContext } = unlock( commandsPrivateApis );
@@ -200,10 +201,7 @@ function MetaBoxesMain() {
 	const separatorHelpId = useId();
 
 	const [ isUntouched, setIsUntouched ] = useState( true );
-	const applyHeight = ( candidateHeight, isPersistent ) => {
-		// TODO: it seems weird to clamp with min and max here as they are passed to the
-		// ResizableBox hook as constraints so why doesn’t the hook send clamped values?
-		const nextHeight = Math.min( max, Math.max( min, candidateHeight ) );
+	const applyHeight = ( nextHeight, isPersistent ) => {
 		if ( isPersistent ) {
 			setPreference(
 				'core/edit-post',
@@ -217,7 +215,6 @@ function MetaBoxesMain() {
 	// TODO: Support more/all keyboard interactions from the window splitter pattern:
 	// https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/
 	const [ setResizable, bindResizableHandle ] = useResizableBox( {
-		debug: true,
 		constraints: [
 			[ , min ],
 			[ , max ],
@@ -236,9 +233,7 @@ function MetaBoxesMain() {
 			// Operates only if the size actually changed to avoid a click from having any effect.
 			if ( ySize !== yStartSize ) {
 				applyHeight( ySize, true );
-				if ( isUntouched ) {
-					setIsUntouched( false );
-				}
+				setIsUntouched( false );
 			}
 		},
 	} );

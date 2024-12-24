@@ -98,9 +98,6 @@ export default ( {
 		let fromWidth, fromHeight;
 		if ( first ) {
 			sizeObserver.unobserve( resizableRef.current );
-			// TODO: It might be off that constraints are only applied when the
-			// resize starts, and otherwise its up to the consumer to do so from
-			// the specializer. Give this more thought…
 			const [
 				[ minWidth = 0, minHeight = 0 ] = [],
 				[ maxWidth = Infinity, maxHeight = Infinity ] = [],
@@ -224,6 +221,11 @@ const applySize = (
 		width = fromWidth + xDiff;
 		height = fromHeight + yDiff;
 	}
+	const [ [ minWidth, minHeight ], [ maxWidth, maxHeight ] ] =
+		memo.constraints;
+	// Applies constraints.
+	width = Math.min( maxWidth, Math.max( minWidth, width ) );
+	height = Math.min( maxHeight, Math.max( minHeight, height ) );
 	// Change width and height styles only as applicable.
 	if ( isBlock ) {
 		target.style.height = styleHeight ?? `${ height }px`;

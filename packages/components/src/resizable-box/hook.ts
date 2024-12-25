@@ -23,12 +23,6 @@ export type ResizableHookHandler = ( state: {
 	handleName: Direction;
 } ) => Record< string | number | symbol, unknown > | void;
 
-export type ResizableHookHandlers = {
-	onResize: ResizableHookHandler;
-	onResizeStart: ResizableHookHandler;
-	onResizeStop: ResizableHookHandler;
-};
-
 export type ResizeHandleBinder = (
 	handleName: Direction
 ) => // This is likely due a more specific type
@@ -41,8 +35,17 @@ export type Constrainer = (
 	handleName: Direction
 ) => Constraints;
 
+type ResizableHookProps = {
+	constraints?: Constraints | Constrainer;
+	onResize?: ResizableHookHandler;
+	onResizeStart?: ResizableHookHandler;
+	onResizeStop?: ResizableHookHandler;
+	specializer?: Specializer;
+};
+
 // This clamp doesn’t NaN when passed strings with units – e.g.'5%' whereas the one from utils does.
 const clamp = ( value: number, min: number, max: number ) => {
+	console.log('clamp', {value, min, max})
 	if ( value < min ) {
 		return min;
 	}
@@ -72,10 +75,7 @@ export default ( {
 	onResizeStart,
 	onResizeStop,
 	specializer,
-}: Partial< ResizableHookHandlers > & {
-	constraints?: Constraints | Constrainer;
-	specializer?: Specializer;
-} ) => {
+}: ResizableHookProps ) => {
 	const resizableRef = useRef< HTMLElement >();
 	const sizeRef = useRef< Vector2 >( [ 0, 0 ] );
 	const [ sizeObserver ] = useState< ResizeObserver >(
@@ -94,7 +94,7 @@ export default ( {
 		if ( ! resizableRef.current ) {
 			return;
 		}
-		const handleName = state.args[ 0 ];
+		const [ handleName ] = state.args;
 		let fromWidth, fromHeight;
 		if ( first ) {
 			sizeObserver.unobserve( resizableRef.current );
@@ -128,14 +128,14 @@ export default ( {
 		}
 		// On the first invocation pointer input doesn’t change the size but keyboard
 		// input does. The last invocation never changes the size.
-		const size = ! last
+		const [ width, height ] = ! last
 			? applySize( resizableRef.current, state, specializer )
-			: sizeRef.current;
-		sizeRef.current = size;
+			: state.memo.size;
+		state.memo.size = [ width, height ];
 		const stateOut: Parameters< ResizableHookHandler >[ 0 ] = {
 			handleName,
 			event: state.event,
-			size,
+			size: [ width, height ],
 			startSize: [ fromWidth, fromHeight ],
 		};
 		if ( first ) {
@@ -148,9 +148,9 @@ export default ( {
 			return state.memo;
 		}
 		// By now, `last` must be true.
-		sizeObserver.observe( resizableRef.current, { box: 'border-box' } );
 		onResizeStop?.( stateOut );
-		// TODO: could returning a memo here make it possible to obviate sizeRef?
+		sizeObserver.observe( resizableRef.current, { box: 'border-box' } );
+		sizeRef.current = [ width, height ];
 	};
 	const binder: ResizeHandleBinder = useDrag( dragHandler, {
 		keyboardDisplacement: 20,
@@ -200,10 +200,8 @@ const applySize = (
 	const [ fromWidth, fromHeight ] = memo.from as Vector2;
 	const [ priorWidth, priorHeight ] = memo.size as Vector2;
 	const [ blockSign, inlineSign ] = mapHandleNameToSign[ handleName ];
-	let isBlock = blockSign !== 0;
-	let isInline = inlineSign !== 0;
-	const yDiff = isBlock ? yMovement * blockSign : 0;
-	const xDiff = isInline ? xMovement * inlineSign : 0;
+	const yDiff = yMovement * blockSign;
+	const xDiff = xMovement * inlineSign;
 	let width, height, styleWidth, styleHeight;
 	if ( specializer ) {
 		const { size, styleSize = [] } = specializer( {
@@ -211,26 +209,22 @@ const applySize = (
 			difference: [ xDiff, yDiff ],
 			from: [ fromWidth, fromHeight ],
 		} );
-		[ width, height ] = size;
+		// If needed, falls back to prior width or height values since the specializer
+		// can return undefined for either dimension (as a way to opt out of a change).
+		[ width = priorWidth, height = priorHeight ] = size;
 		[ styleWidth, styleHeight ] = styleSize;
-		isBlock = height !== undefined;
-		isInline = width !== undefined;
-		height ??= priorHeight;
-		width ??= priorWidth;
 	} else {
 		width = fromWidth + xDiff;
 		height = fromHeight + yDiff;
 	}
 	const [ [ minWidth, minHeight ], [ maxWidth, maxHeight ] ] =
 		memo.constraints;
-	// Applies constraints.
-	width = Math.min( maxWidth, Math.max( minWidth, width ) );
-	height = Math.min( maxHeight, Math.max( minHeight, height ) );
-	// Change width and height styles only as applicable.
-	if ( isBlock ) {
+	if ( height !== priorHeight ) {
+		height = Math.min( maxHeight, Math.max( minHeight, height ) );
 		target.style.height = styleHeight ?? `${ height }px`;
 	}
-	if ( isInline ) {
+	if ( width !== priorWidth ) {
+		width = Math.min( maxWidth, Math.max( minWidth, width ) );
 		target.style.width = styleWidth ?? `${ width }px`;
 	}
 	return [ width, height ] as Vector2;

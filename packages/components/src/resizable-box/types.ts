@@ -72,15 +72,18 @@ export interface HandleComponent {
 	topLeft?: React.ReactElement< any >;
 }
 
+// TODO: make sure this type is accurate – it ought to be whatever `useDrag` defines…
+type ResizeEvent = MouseEvent | TouchEvent | KeyboardEvent | PointerEvent;
+
 export type ResizeCallback = (
-	event: MouseEvent | TouchEvent | KeyboardEvent | PointerEvent,
+	event: ResizeEvent,
 	direction: Direction,
 	elementRef: HTMLElement,
 	delta: NumberSize
 ) => void;
 
 export type ResizeStartCallback = (
-	event: MouseEvent | TouchEvent | KeyboardEvent | PointerEvent,
+	event: ResizeEvent,
 	direction: Direction,
 	elementRef: HTMLElement
 ) => void | boolean;

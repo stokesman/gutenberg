@@ -1,22 +1,8 @@
-@import "~@wordpress/base-styles/colors";
 @import "~@wordpress/base-styles/variables";
 @import "~@wordpress/base-styles/mixins";
 @import "~@wordpress/base-styles/breakpoints";
-@import "~@wordpress/base-styles/animations";
-@import "~@wordpress/base-styles/z-index";
 
 @import "./reset";
-
-.playground {
-	img {
-		max-width: 100%;
-		height: auto;
-	}
-
-	iframe {
-		width: 100%;
-	}
-}
 
 .playground__content {
 	position: fixed;

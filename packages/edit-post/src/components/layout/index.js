@@ -56,7 +56,7 @@ import useEditPostCommands from '../../commands/use-commands';
 import { usePaddingAppender } from './use-padding-appender';
 import { useShouldIframe } from './use-should-iframe';
 import useNavigateToEntityRecord from '../../hooks/use-navigate-to-entity-record';
-import { useMetaBoxInitialization } from '../meta-boxes/use-meta-box-initialization';
+import { useMetaBoxInitialization } from '../../hooks/use-meta-box-initialization';
 
 const { getLayoutStyles } = unlock( blockEditorPrivateApis );
 const { useCommandContext } = unlock( commandsPrivateApis );

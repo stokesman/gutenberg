@@ -1,12 +1,6 @@
 /**
  * WordPress dependencies
  */
-import { privateApis as editorPrivateApis } from '@wordpress/editor';
-import { useSelect, useDispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
-import { useEffect, useId, useRef, useState } from '@wordpress/element';
-import { chevronDown, chevronUp } from '@wordpress/icons';
-import { store as preferencesStore } from '@wordpress/preferences';
 import {
 	Icon,
 	ResizableBox,
@@ -14,21 +8,48 @@ import {
 	VisuallyHidden,
 } from '@wordpress/components';
 import { useEvent, useMediaQuery, useRefEffect } from '@wordpress/compose';
+import { useDispatch, useSelect } from '@wordpress/data';
+import { privateApis as editorPrivateApis } from '@wordpress/editor';
+import {
+	forwardRef,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
+import { chevronDown, chevronUp } from '@wordpress/icons';
+import { store as preferencesStore } from '@wordpress/preferences';
 
 /**
  * Internal dependencies
  */
-import { store as editPostStore } from '../../store';
 import { unlock } from '../../lock-unlock';
+import { store as editPostStore } from '../../store';
 import MetaBoxes from '../meta-boxes';
 
 const { NavigableRegion } = unlock( editorPrivateApis );
 
 /**
- * @param {Object}  props
- * @param {boolean} props.isLegacy True when the editor canvas is not in an iframe.
+ * @template T
+ * @typedef { ReturnType< typeof useRefEffect< T > >} RefEffect
  */
-export default function MetaBoxesMain( { isLegacy } ) {
+/**
+ * @template T, P
+ * @typedef { ReturnType< typeof forwardRef< T, P > >} ForwardRef
+ */
+/**
+ * Ref callback receiving the canvas element to add wheel event handling.
+ * @typedef { RefEffect< HTMLBodyElement | HTMLDivElement > } EffectWheelResizing
+ */
+/**
+ * @typedef MetaBoxesMainProps
+ * @property { boolean } isLegacy True when the editor canvas is not in an iframe.
+ */
+
+/** @type {ForwardRef< EffectWheelResizing, MetaBoxesMainProps>} */
+const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 	const [ isOpen, openHeight, hasAnyVisible ] = useSelect( ( select ) => {
 		const { get } = select( preferencesStore );
 		const { isMetaBoxLocationVisible } = select( editPostStore );
@@ -48,6 +69,7 @@ export default function MetaBoxesMain( { isLegacy } ) {
 	// Keeps the resizable area’s size constraints updated taking into account
 	// editor notices. The constraints are also used to derive the value for the
 	// aria-valuenow attribute on the separator.
+	/** @type { RefEffect< HTMLElement > } */
 	const effectSizeConstraints = useRefEffect( ( node ) => {
 		const container = node.closest(
 			'.interface-interface-skeleton__content'
@@ -134,6 +156,65 @@ export default function MetaBoxesMain( { isLegacy } ) {
 		}
 	}, [ isShort ] );
 
+	const linerRef = useRef();
+	const _applyHeight = useEvent( applyHeight );
+	/** @type { EffectWheelResizing } */
+	const effectWheel = useRefEffect( ( canvas ) => {
+		const iframe = canvas.ownerDocument.defaultView.frameElement;
+		if ( ! iframe ) {
+			return;
+		}
+		const pane = metaBoxesMainRef.current.resizable;
+		let isScrollMaxSticking = false;
+		const iframeObserver = new window.ResizeObserver( () => {
+			if ( isScrollMaxSticking ) {
+				const { scrollingElement } = iframe.contentDocument;
+				scrollingElement.scrollTop = scrollingElement.scrollHeight;
+				isScrollMaxSticking = false;
+			}
+		} );
+		iframeObserver.observe( iframe );
+		/** @param { WheelEvent } event */
+		const onWheel = ( event ) => {
+			const { deltaY, currentTarget } = event;
+			const { offsetHeight: canvasHeight, contentDocument } = iframe;
+			const { scrollTop, scrollHeight } =
+				contentDocument.scrollingElement;
+			const scrollMax = scrollHeight - canvasHeight;
+			if ( scrollMax - scrollTop >= 1 ) {
+				return;
+			}
+			if ( pane === currentTarget ) {
+				const isPaneScrolled = linerRef.current.scrollTop > 0;
+				if ( isPaneScrolled && Math.sign( deltaY ) === -1 ) {
+					return;
+				}
+				// While the canvas has height, prevents scrolling the meta boxes.
+				if ( canvasHeight > 0 ) {
+					event.preventDefault();
+				}
+			}
+			isScrollMaxSticking = true;
+			const nextHeight = metaBoxesMainRef.current.state.height + deltaY;
+			const { min: _min, isOpen: _isOpen } = getRenderValues();
+			if ( _isOpen && nextHeight <= _min ) {
+				persistIsOpen( false );
+			} else if ( ! _isOpen && nextHeight > _min ) {
+				persistIsOpen( true );
+			}
+			_applyHeight( nextHeight, false, true );
+		};
+		const canvasDocument = canvas.ownerDocument;
+		canvasDocument.addEventListener( 'wheel', onWheel, { passive: true } );
+		pane.addEventListener( 'wheel', onWheel, { passive: false } );
+		return () => {
+			iframeObserver.disconnect();
+			canvasDocument.removeEventListener( 'wheel', onWheel );
+			pane.removeEventListener( 'wheel', onWheel );
+		};
+	}, [] );
+	useImperativeHandle( ref, () => effectWheel, [ effectWheel ] );
+
 	if ( ! hasAnyVisible ) {
 		return;
 	}
@@ -142,7 +223,8 @@ export default function MetaBoxesMain( { isLegacy } ) {
 		<div
 			// The class name 'edit-post-layout__metaboxes' is retained because some plugins use it.
 			className="edit-post-layout__metaboxes edit-post-meta-boxes-main__liner"
-			hidden={ ! isOpen }
+			hidden={ ! isLegacy && ! isOpen }
+			ref={ ! isLegacy ? linerRef : null }
 		>
 			<MetaBoxes location="normal" />
 			<MetaBoxes location="advanced" />
@@ -290,4 +372,8 @@ export default function MetaBoxesMain( { isLegacy } ) {
 			{ contents }
 		</ResizableBox>
 	);
-}
+} );
+
+MetaBoxesMain.displayName = 'MetaBoxesMain';
+
+export default MetaBoxesMain;

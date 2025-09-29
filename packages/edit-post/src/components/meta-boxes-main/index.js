@@ -2,6 +2,7 @@
  * WordPress dependencies
  */
 import {
+	Button,
 	Icon,
 	ResizableBox,
 	Tooltip,
@@ -19,7 +20,7 @@ import {
 	useState,
 } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { chevronDown, chevronUp } from '@wordpress/icons';
+import { chevronDown, chevronUp, pinSmall } from '@wordpress/icons';
 import { store as preferencesStore } from '@wordpress/preferences';
 
 /**
@@ -156,68 +157,77 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 		}
 	}, [ isShort ] );
 
+	const [ mayAutoAdjust, setMayAutoAdjust ] = useState( true );
 	const linerRef = useRef();
 	const _applyHeight = useEvent( applyHeight );
 	/** @type { EffectWheelResizing } */
-	const effectWheel = useRefEffect( ( canvas ) => {
-		const iframe = canvas.ownerDocument.defaultView.frameElement;
-		if ( ! iframe ) {
-			return;
-		}
-		const pane = metaBoxesMainRef.current.resizable;
-		let isScrollMaxSticking = false;
-		const iframeObserver = new window.ResizeObserver( () => {
-			if ( isScrollMaxSticking ) {
-				const { scrollingElement } = iframe.contentDocument;
-				scrollingElement.scrollTop = scrollingElement.scrollHeight;
-				isScrollMaxSticking = false;
-			}
-		} );
-		iframeObserver.observe( iframe );
-		/** @param { WheelEvent } event */
-		const onWheel = ( event ) => {
-			const { deltaY, currentTarget } = event;
-			const { offsetHeight: canvasHeight, contentDocument } = iframe;
-			const { scrollTop, scrollHeight } =
-				contentDocument.scrollingElement;
-			const scrollMax = scrollHeight - canvasHeight;
-			if ( scrollMax - scrollTop >= 1 ) {
+	const effectWheel = useRefEffect(
+		( canvas ) => {
+			if ( ! mayAutoAdjust ) {
 				return;
 			}
-			if ( pane === currentTarget ) {
-				const isPaneScrolled = linerRef.current.scrollTop > 0;
-				if ( isPaneScrolled && Math.sign( deltaY ) === -1 ) {
+			const iframe = canvas.ownerDocument.defaultView.frameElement;
+			if ( ! iframe ) {
+				return;
+			}
+			const pane = metaBoxesMainRef.current.resizable;
+			let isScrollMaxSticking = false;
+			const iframeObserver = new window.ResizeObserver( () => {
+				if ( isScrollMaxSticking ) {
+					const { scrollingElement } = iframe.contentDocument;
+					scrollingElement.scrollTop = scrollingElement.scrollHeight;
+					isScrollMaxSticking = false;
+				}
+			} );
+			iframeObserver.observe( iframe );
+			/** @param { WheelEvent } event */
+			const onWheel = ( event ) => {
+				const { deltaY, currentTarget } = event;
+				const { offsetHeight: canvasHeight, contentDocument } = iframe;
+				const { scrollTop, scrollHeight } =
+					contentDocument.scrollingElement;
+				const scrollMax = scrollHeight - canvasHeight;
+				if ( scrollMax - scrollTop >= 1 ) {
 					return;
 				}
-				// While the canvas has height, prevents scrolling the meta boxes.
-				if ( canvasHeight > 0 ) {
-					event.preventDefault();
+				if ( pane === currentTarget ) {
+					const isPaneScrolled = linerRef.current.scrollTop > 0;
+					if ( isPaneScrolled && Math.sign( deltaY ) === -1 ) {
+						return;
+					}
+					// While the canvas has height, prevents scrolling the meta boxes.
+					if ( canvasHeight > 0 ) {
+						event.preventDefault();
+					}
 				}
-			}
-			isScrollMaxSticking = true;
-			let fromHeight = metaBoxesMainRef.current.state.height;
-			// Reads the height from the DOM in case it's unset.
-			if ( fromHeight === 'auto' ) {
-				fromHeight = pane.offsetHeight;
-			}
-			const nextHeight = deltaY + fromHeight;
-			const { min: _min, isOpen: _isOpen } = getRenderValues();
-			if ( _isOpen && nextHeight <= _min ) {
-				persistIsOpen( false );
-			} else if ( ! _isOpen && nextHeight > _min ) {
-				persistIsOpen( true );
-			}
-			_applyHeight( nextHeight, false, true );
-		};
-		const canvasDocument = canvas.ownerDocument;
-		canvasDocument.addEventListener( 'wheel', onWheel, { passive: true } );
-		pane.addEventListener( 'wheel', onWheel, { passive: false } );
-		return () => {
-			iframeObserver.disconnect();
-			canvasDocument.removeEventListener( 'wheel', onWheel );
-			pane.removeEventListener( 'wheel', onWheel );
-		};
-	}, [] );
+				isScrollMaxSticking = true;
+				let fromHeight = metaBoxesMainRef.current.state.height;
+				// Reads the height from the DOM in case it's unset.
+				if ( fromHeight === 'auto' ) {
+					fromHeight = pane.offsetHeight;
+				}
+				const nextHeight = deltaY + fromHeight;
+				const { min: _min, isOpen: _isOpen } = getRenderValues();
+				if ( _isOpen && nextHeight <= _min ) {
+					persistIsOpen( false );
+				} else if ( ! _isOpen && nextHeight > _min ) {
+					persistIsOpen( true );
+				}
+				_applyHeight( nextHeight, false, true );
+			};
+			const canvasDocument = canvas.ownerDocument;
+			canvasDocument.addEventListener( 'wheel', onWheel, {
+				passive: true,
+			} );
+			pane.addEventListener( 'wheel', onWheel, { passive: false } );
+			return () => {
+				iframeObserver.disconnect();
+				canvasDocument.removeEventListener( 'wheel', onWheel );
+				pane.removeEventListener( 'wheel', onWheel );
+			};
+		},
+		[ mayAutoAdjust ]
+	);
 	useImperativeHandle( ref, () => effectWheel, [ effectWheel ] );
 
 	if ( ! hasAnyVisible ) {
@@ -321,6 +331,20 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 				<>
 					{ toggle }
 					{ separator }
+					<Button
+						label={ __( 'Disable auto-resizing' ) }
+						showTooltip
+						size="small"
+						icon={ pinSmall }
+						onClick={ () => setMayAutoAdjust( ! mayAutoAdjust ) }
+						isPressed={ ! mayAutoAdjust }
+						// Avoids pointer capture from the resize handle. This allows
+						// canceling clicks by dragging off the button.
+						onPointerDown={ ( event ) => event.stopPropagation() }
+						// Prevents resizes - the button is inside the resize handle.
+						onMouseDown={ ( event ) => event.stopPropagation() }
+						onTouchStart={ ( event ) => event.stopPropagation() }
+					/>
 				</>
 			),
 		},

@@ -24,7 +24,7 @@ import {
 } from '@wordpress/block-editor';
 import { PluginArea } from '@wordpress/plugins';
 import { __, sprintf } from '@wordpress/i18n';
-import { useCallback, useMemo, useRef } from '@wordpress/element';
+import { useCallback, useMemo, useReducer } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
 import { store as preferencesStore } from '@wordpress/preferences';
 import { privateApis as commandsPrivateApis } from '@wordpress/commands';
@@ -129,6 +129,8 @@ function useEditorStyles( ...additionalStyles ) {
 		addedStyles,
 	] );
 }
+
+const patcher = ( _, incoming ) => incoming;
 
 function Layout( {
 	postId: initialPostId,
@@ -236,20 +238,8 @@ function Layout( {
 	const [ paddingAppenderRef, paddingStyle ] = usePaddingAppender(
 		enablePaddingAppender
 	);
-	const metaBoxesMainRef = useRef();
-	const contentRef = useMergeRefs( [
-		paddingAppenderRef,
-		// Notes:
-		// 1. This reads a ref in render. The ref’s value should change but once
-		//    so it seems okay.
-		// 2. This ref callback from the imperative handle depends on the layout
-		//    component rerendering after metaBoxesMainRef’s value is set. That
-		//    seems dependable as of now but it's worth noting.
-		// Alternatives:
-		// - Make the `contentRef` available via a context provider in block editor
-		// - Use state for contentRef and pass its value to MetaBoxesMain
-		metaBoxesMainRef.current,
-	] );
+	const [ contentRefEffect, setContentRefEffect ] = useReducer( patcher );
+	const contentRef = useMergeRefs( [ paddingAppenderRef, contentRefEffect ] );
 
 	// Set the right context for the command palette
 	const commandContext = hasBlockSelected
@@ -390,7 +380,7 @@ function Layout( {
 									isLegacy={
 										! shouldIframe || isDevicePreview
 									}
-									ref={ metaBoxesMainRef }
+									ref={ setContentRefEffect }
 								/>
 							)
 						}

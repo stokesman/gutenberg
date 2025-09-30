@@ -3,8 +3,8 @@
  */
 import { Button } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
-import { chevronRightSmall, Icon } from '@wordpress/icons';
+import { __, isRTL } from '@wordpress/i18n';
+import { chevronLeftSmall, chevronRightSmall, Icon } from '@wordpress/icons';
 import { useRef } from '@wordpress/element';
 
 /**
@@ -45,6 +45,13 @@ function BlockBreadcrumb( { rootLabelText } ) {
 	const blockRef = useRef();
 	useBlockElementRef( clientId, blockRef );
 
+	const separator = (
+		<Icon
+			icon={ isRTL() ? chevronLeftSmall : chevronRightSmall }
+			className="block-editor-block-breadcrumb__separator"
+		/>
+	);
+
 	/*
 	 * Disable reason: The `list` ARIA role is redundant but
 	 * Safari+VoiceOver won't announce the list otherwise.
@@ -83,12 +90,7 @@ function BlockBreadcrumb( { rootLabelText } ) {
 					</Button>
 				) }
 				{ ! hasSelection && <span>{ rootLabel }</span> }
-				{ !! clientId && (
-					<Icon
-						icon={ chevronRightSmall }
-						className="block-editor-block-breadcrumb__separator"
-					/>
-				) }
+				{ !! clientId && separator }
 			</li>
 
 			{ parents.map( ( parentClientId ) => (
@@ -103,10 +105,7 @@ function BlockBreadcrumb( { rootLabelText } ) {
 							maximumLength={ 35 }
 						/>
 					</Button>
-					<Icon
-						icon={ chevronRightSmall }
-						className="block-editor-block-breadcrumb__separator"
-					/>
+					{ separator }
 				</li>
 			) ) }
 			{ !! clientId && (

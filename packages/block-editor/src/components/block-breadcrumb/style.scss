@@ -9,15 +9,11 @@
 
 		.block-editor-block-breadcrumb__separator {
 			fill: currentColor;
-			margin-left: -$grid-unit-05;
-			margin-right: -$grid-unit-05;
-
-			// Flip for RTL.
-			transform: scaleX(1) #{"/*rtl:scaleX(-1);*/"}; // This points the chevron right for LTR and left for RTL.
+			margin-inline: -$grid-unit-05;
 		}
 
-		&:last-child .block-editor-block-breadcrumb__separator {
-			display: none;
+		&:first-child {
+			margin-inline: -$grid-unit-10 0;
 		}
 	}
 }

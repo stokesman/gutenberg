@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { useRef, useEffect } from '@wordpress/element';
 import { Spinner } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
+import { arrowUp, chevronUp } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -53,7 +54,13 @@ function MetaBoxesArea( { location } ) {
 	} );
 
 	return (
-		<div className={ classes }>
+		<div
+			className={ classes }
+			style={ {
+				'--wp-icons-arrow-up': `path('${ arrowUp.props.children.props.d }')`,
+				'--wp-icons-chevron-up': `path('${ chevronUp.props.children.props.d }')`,
+			} }
+		>
 			{ isSaving && <Spinner /> }
 			<div
 				className="edit-post-meta-boxes-area__container"

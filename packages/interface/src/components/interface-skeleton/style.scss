@@ -171,7 +171,12 @@ html.interface-interface-skeleton__html-container {
 		height: $button-size-small;
 		align-items: center;
 		font-size: $default-font-size;
-		padding: 0 ($grid-unit-15 + 6px);
+		padding: 0 $grid-unit-20;
+
+		// TODO: if this is only applicable in edit-post perhaps it should reside there?
+		.is-fullscreen-mode & {
+			padding: 0 $grid-unit-30;
+		}
 	}
 }
 

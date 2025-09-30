@@ -22,26 +22,87 @@
 	.postbox-header {
 		border-top: $border-width solid $gray-300;
 		border-bottom: 0;
+		align-items: unset;
+
+		> .handle-actions {
+			height: $grid-unit-60 - 1px;
+			display: flex;
+			gap: $grid-unit-10;
+			align-items: center;
+			padding-inline: 0 $grid-unit-10;
+
+			&:not(:focus-within, :hover) button {
+				filter: opacity(.3);
+			}
+
+			button{
+				height: $grid-unit-40;
+				width: $grid-unit-40;
+				border-radius: $radius-small;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				color: $gray-900;
+
+				&[aria-disabled=true] {
+					color: $gray-600;
+				}
+
+				&:focus {
+					@include button-style__focus();
+				}
+
+				> :is(.order-higher-indicator, .order-lower-indicator, .toggle-indicator) {
+					width: $grid-unit-30;
+					height: $grid-unit-30;
+					color: currentColor;
+					background-color: currentColor;
+
+					&:before {
+						display: none;
+					}
+				}
+				> :is(.order-higher-indicator, .order-lower-indicator) {
+					clip-path: var(--wp-icons-arrow-up);
+				}
+				.order-lower-indicator {
+					scale: -1;
+				}
+				&.handlediv > .toggle-indicator {
+					clip-path: var(--wp-icons-chevron-up);
+				}
+				&.handlediv[aria-expanded=false] > .toggle-indicator {
+					scale: -1;
+				}
+
+			}
+		}
 	}
 
 	/* Match width and positioning of the meta boxes. Override default styles. */
 	#poststuff {
-		margin: 0 auto;
 		padding-top: 0;
 		min-width: auto;
 	}
 
-	/* Override Default meta box stylings */
-	#poststuff h3.hndle,
-	#poststuff .stuffbox > h3,
-	#poststuff h2.hndle { /* WordPress selectors yolo */
+	$postbox-heading: "#poststuff :is( h3.hndle, .stuffbox > h3, h2.hndle )";
+
+	#{$postbox-heading} {
 		box-sizing: border-box;
 		color: inherit;
-		font-weight: 600;
+		font-size: unset;
+		font-weight: 500;
 		outline: none;
-		padding: 0 $grid-unit-30;
 		position: relative;
 		width: 100%;
+		padding: 0 $grid-unit-20;
+
+		.is-fullscreen-mode & {
+			padding: 0 $grid-unit-30;
+		}
+	}
+	.metabox-location-side #{$postbox-heading} {
+		padding: 0 $grid-unit-20;
 	}
 
 	.postbox {
@@ -52,13 +113,12 @@
 
 	.postbox > .inside {
 		color: inherit;
-		padding: 0 $grid-unit-30 $grid-unit-30;
+		padding: 0 $grid-unit-20 $grid-unit-20;
 		margin: 0;
-	}
 
-	.postbox .handlediv {
-		height: 44px;
-		width: 44px;
+		.is-fullscreen-mode & {
+			padding: 0 $grid-unit-30 $grid-unit-30;
+		}
 	}
 
 	&.is-loading::before {

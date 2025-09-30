@@ -51,17 +51,21 @@ const { NavigableRegion } = unlock( editorPrivateApis );
 
 /** @type {ForwardRef< EffectWheelResizing, MetaBoxesMainProps>} */
 const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
-	const [ isOpen, openHeight, hasAnyVisible ] = useSelect( ( select ) => {
-		const { get } = select( preferencesStore );
-		const { isMetaBoxLocationVisible } = select( editPostStore );
-		return [
-			!! get( 'core/edit-post', 'metaBoxesMainIsOpen' ),
-			get( 'core/edit-post', 'metaBoxesMainOpenHeight' ),
-			isMetaBoxLocationVisible( 'normal' ) ||
-				isMetaBoxLocationVisible( 'advanced' ) ||
-				isMetaBoxLocationVisible( 'side' ),
-		];
-	}, [] );
+	const [ isOpen, openHeight, isAutoResize, hasAnyVisible ] = useSelect(
+		( select ) => {
+			const { get } = select( preferencesStore );
+			const { isMetaBoxLocationVisible } = select( editPostStore );
+			return [
+				get( 'core/edit-post', 'metaBoxesMainIsOpen' ),
+				get( 'core/edit-post', 'metaBoxesMainOpenHeight' ),
+				get( 'core/edit-post', 'metaBoxesMainIsAutoResize' ),
+				isMetaBoxLocationVisible( 'normal' ) ||
+					isMetaBoxLocationVisible( 'advanced' ) ||
+					isMetaBoxLocationVisible( 'side' ),
+			];
+		},
+		[]
+	);
 	const { set: setPreference } = useDispatch( preferencesStore );
 	const metaBoxesMainRef = useRef();
 	const isShort = useMediaQuery( '(max-height: 549px)' );
@@ -157,13 +161,12 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 		}
 	}, [ isShort ] );
 
-	const [ mayAutoAdjust, setMayAutoAdjust ] = useState( true );
 	const linerRef = useRef();
 	const _applyHeight = useEvent( applyHeight );
 	/** @type { EffectWheelResizing } */
 	const effectWheel = useRefEffect(
 		( canvas ) => {
-			if ( ! mayAutoAdjust ) {
+			if ( ! isAutoResize ) {
 				return;
 			}
 			const iframe = canvas.ownerDocument.defaultView.frameElement;
@@ -226,7 +229,7 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 				pane.removeEventListener( 'wheel', onWheel );
 			};
 		},
-		[ mayAutoAdjust ]
+		[ isAutoResize ]
 	);
 	useImperativeHandle( ref, () => effectWheel, [ effectWheel ] );
 
@@ -336,8 +339,14 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 						showTooltip
 						size="small"
 						icon={ pinSmall }
-						onClick={ () => setMayAutoAdjust( ! mayAutoAdjust ) }
-						isPressed={ ! mayAutoAdjust }
+						onClick={ () =>
+							setPreference(
+								'core/edit-post',
+								'metaBoxesMainIsAutoResize',
+								! isAutoResize
+							)
+						}
+						isPressed={ ! isAutoResize }
 						// Avoids pointer capture from the resize handle. This allows
 						// canceling clicks by dragging off the button.
 						onPointerDown={ ( event ) => event.stopPropagation() }

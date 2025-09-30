@@ -89,8 +89,11 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 			'.edit-post-meta-boxes-main__presenter'
 		);
 		const deriveConstraints = () => {
-			const fullHeight = container.offsetHeight;
-			let nextMax = fullHeight;
+			// Sub-pixel container heights are possible - e.g. 2x screens and Firefox -
+			// thus getComputedStyle is used for precision and to avoid a rounded max
+			// constraint that may create overflow/clipping in an ancestor.
+			const fullHeight = window.getComputedStyle( container ).height;
+			let nextMax = parseFloat( fullHeight );
 			for ( const element of noticeLists ) {
 				nextMax -= element.offsetHeight;
 			}

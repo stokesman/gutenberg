@@ -4,7 +4,10 @@
 import {
 	Button,
 	Icon,
+	Path,
+	Rect,
 	ResizableBox,
+	SVG,
 	Tooltip,
 	VisuallyHidden,
 } from '@wordpress/components';
@@ -323,6 +326,83 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 		</>
 	);
 
+	const iconStyle = {
+		stroke: 'currentColor',
+		strokeWidth: 1.5,
+		strokeLinecap: 'round',
+		strokeLinejoin: 'round',
+		fill: 'none',
+	};
+
+	const splitBox = (
+		<SVG
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			style={ { ...iconStyle } }
+		>
+			<Path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
+			<Path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3" />
+			{ isAutoResize ? (
+				<>
+					<Path d="M4 12H2" />
+					<Path d="M10 12H8" />
+					<Path d="M16 12h-2" />
+					<Path d="M22 12h-2" />
+				</>
+			) : (
+				<Path d="M3 12H21" />
+			) }
+		</SVG>
+	);
+
+	const dashedInside = (
+		<SVG
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			style={ { ...iconStyle } }
+		>
+			<Rect width="18" height="18" x="3" y="3" rx="2" />
+			<Path d="M14 12h1" />
+			<Path d="M19 12h2" />
+			<Path d="M3 12h2" />
+			<Path d="M9 12h1" />
+		</SVG>
+	);
+
+	const grab = (
+		<SVG
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			style={ { ...iconStyle, transform: 'scale(0.75)', strokeWidth: 2 } }
+		>
+			<Path d="M18 9.5V7a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1.4" />
+			<Path d="M14 8V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
+			<Path d="M10 7.9V7a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5" />
+			<Path d="M6 12a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
+			<Path d="M18 9a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8 2 2 0 1 1 4 0" />
+		</SVG>
+	);
+
+	const magnet = (
+		<SVG
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			style={ { ...iconStyle, transform: 'scale(0.75)', strokeWidth: 2 } }
+		>
+			<Path d="m12 15 4 4" />
+			<Path d="M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z" />
+			<Path d="m5 8 4 4" />
+		</SVG>
+	);
+
 	const paneProps = /** @type {Parameters<typeof ResizableBox>[0]} */ ( {
 		as: NavigableRegion,
 		ref: metaBoxesMainRef,
@@ -341,7 +421,7 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 						label={ __( 'Disable auto-resizing' ) }
 						showTooltip
 						size="small"
-						icon={ pinSmall }
+						icon={ isAutoResize ? magnet : grab }
 						onClick={ () =>
 							setPreference(
 								'core/edit-post',
@@ -349,7 +429,7 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 								! isAutoResize
 							)
 						}
-						isPressed={ ! isAutoResize }
+						// isPressed={ ! isAutoResize }
 						// Avoids pointer capture from the resize handle. This allows
 						// canceling clicks by dragging off the button.
 						onPointerDown={ ( event ) => event.stopPropagation() }

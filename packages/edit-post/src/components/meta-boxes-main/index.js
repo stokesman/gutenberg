@@ -195,7 +195,12 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 				}
 			}
 			isScrollMaxSticking = true;
-			const nextHeight = metaBoxesMainRef.current.state.height + deltaY;
+			let fromHeight = metaBoxesMainRef.current.state.height;
+			// Reads the height from the DOM in case it's unset.
+			if ( fromHeight === 'auto' ) {
+				fromHeight = pane.offsetHeight;
+			}
+			const nextHeight = deltaY + fromHeight;
 			const { min: _min, isOpen: _isOpen } = getRenderValues();
 			if ( _isOpen && nextHeight <= _min ) {
 				persistIsOpen( false );

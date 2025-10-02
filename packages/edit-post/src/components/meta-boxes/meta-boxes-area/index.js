@@ -24,24 +24,17 @@ import { store as editPostStore } from '../../../store';
  */
 function MetaBoxesArea( { location } ) {
 	const container = useRef( null );
-	const formRef = useRef( null );
 
 	useEffect( () => {
-		formRef.current = document.querySelector(
-			'.metabox-location-' + location
-		);
-
-		if ( formRef.current ) {
-			container.current.appendChild( formRef.current );
+		const form = document.querySelector( '.metabox-location-' + location );
+		if ( form ) {
+			console.log('porting meta box area', location)
+			container.current.appendChild( form );
+			return () => {
+				console.log('returning meta box area', location)
+				document.querySelector( '#metaboxes' ).appendChild( form );
+			};
 		}
-
-		return () => {
-			if ( formRef.current ) {
-				document
-					.querySelector( '#metaboxes' )
-					.appendChild( formRef.current );
-			}
-		};
 	}, [ location ] );
 
 	const isSaving = useSelect( ( select ) => {

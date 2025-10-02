@@ -52,30 +52,14 @@
 					@include button-style__focus();
 				}
 
-				> :is(.order-higher-indicator, .order-lower-indicator, .toggle-indicator) {
-					color: currentColor;
-
-					&:before {
-						font-size: 15px;
-					}
-				}
-				> .order-higher-indicator::before{
-					content: '\f342'
-				}
-				> .order-lower-indicator::before{
-					content: '\f346'
+				> svg {
+					fill: currentColor;
 				}
 
-				&.handlediv > .toggle-indicator {
-					color: #1e1e1e;
+				> .order-lower-indicator,
+				&.handlediv[aria-expanded=false] > .toggle-indicator {
+					scale: -1;
 				}
-				&.handlediv[aria-expanded=true] > .toggle-indicator::before{
-					content: '\f343'
-				}
-				&.handlediv[aria-expanded=false] > .toggle-indicator::before{
-					content: '\f347'
-				}
-
 			}
 		}
 	}

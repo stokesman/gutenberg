@@ -32,7 +32,7 @@
 			padding-inline: 0 $grid-unit-10;
 
 			&:not(:focus-within, :hover) button {
-				filter: opacity(.3);
+				opacity: 0.3;
 			}
 
 			button{
@@ -53,26 +53,27 @@
 				}
 
 				> :is(.order-higher-indicator, .order-lower-indicator, .toggle-indicator) {
-					width: $grid-unit-30;
-					height: $grid-unit-30;
 					color: currentColor;
-					background-color: currentColor;
 
 					&:before {
-						display: none;
+						font-size: 15px;
 					}
 				}
-				> :is(.order-higher-indicator, .order-lower-indicator) {
-					clip-path: var(--wp-icons-arrow-up);
+				> .order-higher-indicator::before{
+					content: '\f342'
 				}
-				.order-lower-indicator {
-					scale: -1;
+				> .order-lower-indicator::before{
+					content: '\f346'
 				}
+
 				&.handlediv > .toggle-indicator {
-					clip-path: var(--wp-icons-chevron-up);
+					color: #1e1e1e;
 				}
-				&.handlediv[aria-expanded=false] > .toggle-indicator {
-					scale: -1;
+				&.handlediv[aria-expanded=true] > .toggle-indicator::before{
+					content: '\f343'
+				}
+				&.handlediv[aria-expanded=false] > .toggle-indicator::before{
+					content: '\f347'
 				}
 
 			}

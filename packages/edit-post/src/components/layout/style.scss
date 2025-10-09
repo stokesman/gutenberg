@@ -10,6 +10,36 @@
 	flex-basis: 0%;
 }
 
+.is-scroll-yoked .interface-interface-skeleton__content:has(.edit-post-meta-boxes-main) {
+	container: wp edit post skeleton content / size;
+
+	.is-focusing-regions &::after {
+		top: var(--wp-edit-post-content-region-top, 0);
+		bottom: auto;
+		height: calc(100% - $button-size-compact);
+		flex-shrink: 0;
+
+		// The meta boxes pane’s sticking portion grows with coarse pointers.
+		@media (pointer: coarse) {
+			height: calc(100% - $button-size);
+		}
+	}
+
+	.editor-visual-editor {
+		flex-shrink: 0;
+		flex-basis: calc(100% - $button-size-compact);
+		position: sticky;
+		top: 0;
+		margin-block: 0 calc($button-size-compact + var(--wp-edit-post-meta-boxes-main-content-height, 0px));
+
+		// The meta boxes pane’s sticking portion grows with coarse pointers.
+		@media (pointer: coarse) {
+			flex-basis: calc(100% - $button-size);
+			margin-block: 0 calc($button-size + var(--wp-edit-post-meta-boxes-main-content-height, 0px));
+		}
+	}
+}
+
 .has-metaboxes .editor-visual-editor.is-iframed {
 	isolation: isolate;
 }

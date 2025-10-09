@@ -118,3 +118,45 @@
 		display: unset;
 	}
 }
+
+.is-scroll-yoked {
+	.edit-post-meta-boxes-main {
+		height: auto !important;
+		max-height: none !important;
+		position: sticky !important;
+		overflow: unset;
+	}
+
+	.edit-post-meta-boxes-main__presenter-wrapper {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+	}
+
+	.edit-post-meta-boxes-main__presenter {
+		display: grid;
+		grid-template: auto / minmax(7em, 1fr) 3fr minmax(7em, 1fr);
+		gap: $grid-unit-10;
+		align-items: center;
+		// justify-content: space-between;
+		padding-inline: $grid-unit-20 $grid-unit-15;
+		overflow: unset;
+		position: sticky !important; // Overrides Re-resizable’s inline style.
+		top: 0;
+		color: $gray-900;
+		background-color: $white;
+
+		> button {
+			pointer-events: auto;
+		}
+
+		> button:last-of-type {
+			margin-inline: $grid-unit-05 0;	
+			justify-self: end;
+		}
+	}
+
+	.edit-post-meta-boxes-main__liner {
+		overflow-y: hidden;
+	}
+}

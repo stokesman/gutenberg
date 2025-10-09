@@ -16,14 +16,23 @@ const scrollContainerCache = new WeakMap();
 function usePopoverScroll( contentRef ) {
 	const effect = useRefEffect(
 		( node ) => {
+			const contentEl = contentRef.current;
+			let scrollContainer = scrollContainerCache.get( contentEl );
+			if ( ! scrollContainer ) {
+				scrollContainer = getScrollContainer( contentEl, {
+					// Due to cache, this could mean that a document without overflow that
+					// later has overflow would never activate this hook…
+					strict: true,
+				} );
+				// console.log('hook pop scroll', scrollContainer)
+				if ( ! scrollContainer ) {
+					return;
+				}
+				scrollContainerCache.set( contentEl, scrollContainer );
+			}
 			function onWheel( event ) {
 				const { deltaX, deltaY, target } = event;
-				const contentEl = contentRef.current;
-				let scrollContainer = scrollContainerCache.get( contentEl );
-				if ( ! scrollContainer ) {
-					scrollContainer = getScrollContainer( contentEl );
-					scrollContainerCache.set( contentEl, scrollContainer );
-				}
+				// console.log('popover scroll hook', {scrollContainer})
 				// Finds a scrollable ancestor of the event’s target. It's not cached because the
 				// it may not remain scrollable due to popover position changes. The cache is also
 				// less likely to be utilized because the target may be different every event.
@@ -31,16 +40,6 @@ function usePopoverScroll( contentRef ) {
 				// Scrolls “through” the popover only if another contained scrollable area isn’t
 				// in front of it. This is to avoid scrolling both containers simultaneously.
 				if ( ! node.contains( eventScrollContainer ) ) {
-					// Dispatching the event won’t cause scrolling but it does make the event
-					// available to edit-post’s meta box pane’s height adjustment effect.
-					// TODO: something more tailored/explicit seems appealing - like a custom event.
-					scrollContainer.dispatchEvent(
-						new window.WheelEvent( 'wheel', {
-							deltaX,
-							deltaY,
-							bubbles: true,
-						} )
-					);
 					scrollContainer.scrollBy( deltaX, deltaY );
 				}
 			}
@@ -54,7 +53,13 @@ function usePopoverScroll( contentRef ) {
 		},
 		[ contentRef ]
 	);
-	return contentRef ? effect : null;
+	if ( ! contentRef?.current ) {
+		return null;
+	}
+	const { frameElement } = contentRef.current.ownerDocument.defaultView;
+	const isCanvasFramed =
+		frameElement && frameElement.name === 'editor-canvas';
+	return isCanvasFramed ? effect : null;
 }
 
 export default usePopoverScroll;

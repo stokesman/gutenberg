@@ -164,6 +164,7 @@ function Layout( {
 		templateId,
 		enablePaddingAppender,
 		isDevicePreview,
+		shouldScrollYoke,
 	} = useSelect(
 		( select ) => {
 			const { get } = select( preferencesStore );
@@ -222,6 +223,10 @@ function Layout( {
 				enablePaddingAppender:
 					! isZoomOut() && isRenderingPostOnly && isNotDesignPostType,
 				isDevicePreview: getDeviceType() !== 'Desktop',
+				shouldScrollYoke: get(
+					'core/edit-post',
+					'metaBoxesMainIsAutoResize'
+				),
 			};
 		},
 		[
@@ -233,12 +238,24 @@ function Layout( {
 		]
 	);
 
-	useMetaBoxInitialization( hasActiveMetaboxes && hasResolvedMode );
-
 	const [ paddingAppenderRef, paddingStyle ] = usePaddingAppender(
 		enablePaddingAppender
 	);
+
+	useMetaBoxInitialization( hasActiveMetaboxes && hasResolvedMode );
+	const isMetaBoxesMainLegacy = ! shouldIframe || isDevicePreview;
 	const [ contentRefEffect, setContentRefEffect ] = useReducer( patcher );
+	const isScrollYoked =
+		contentRefEffect &&
+		showMetaBoxes &&
+		! isMetaBoxesMainLegacy &&
+		shouldScrollYoke;
+	let scrollYokeStyle;
+	if ( isScrollYoked ) {
+		scrollYokeStyle =
+			'html,.block-editor-iframe__html.zoom-out-animation{overflow:hidden}';
+	}
+
 	const contentRef = useMergeRefs( [ paddingAppenderRef, contentRefEffect ] );
 
 	// Set the right context for the command palette
@@ -255,7 +272,7 @@ function Layout( {
 		} ),
 		[ settings, onNavigateToEntityRecord, onNavigateToPreviousEntityRecord ]
 	);
-	const styles = useEditorStyles( paddingStyle );
+	const styles = useEditorStyles( paddingStyle, scrollYokeStyle );
 
 	// We need to add the show-icon-labels class to the body element so it is applied to modals.
 	if ( showIconLabels ) {
@@ -268,6 +285,7 @@ function Layout( {
 
 	const className = clsx( 'edit-post-layout', 'is-mode-' + mode, {
 		'has-metaboxes': hasActiveMetaboxes,
+		'is-scroll-yoked': isScrollYoked,
 	} );
 
 	function onPluginAreaError( name ) {
@@ -377,9 +395,7 @@ function Layout( {
 							! isDistractionFree &&
 							showMetaBoxes && (
 								<MetaBoxesMain
-									isLegacy={
-										! shouldIframe || isDevicePreview
-									}
+									isLegacy={ isMetaBoxesMainLegacy }
 									ref={ setContentRefEffect }
 								/>
 							)

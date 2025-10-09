@@ -23,7 +23,7 @@ import {
 	useState,
 } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { chevronDown, chevronUp, pinSmall } from '@wordpress/icons';
+import { arrowDown, arrowUp, chevronDown, chevronUp } from '@wordpress/icons';
 import { store as preferencesStore } from '@wordpress/preferences';
 
 /**
@@ -45,14 +45,14 @@ const { NavigableRegion } = unlock( editorPrivateApis );
  */
 /**
  * Ref callback receiving the canvas element to add wheel event handling.
- * @typedef { RefEffect< HTMLBodyElement | HTMLDivElement > } EffectWheelResizing
+ * @typedef { RefEffect< HTMLBodyElement | HTMLDivElement > | null } EffectScrollSync
  */
 /**
  * @typedef MetaBoxesMainProps
  * @property { boolean } isLegacy True when the editor canvas is not in an iframe.
  */
 
-/** @type {ForwardRef< EffectWheelResizing, MetaBoxesMainProps>} */
+/** @type {ForwardRef< EffectScrollSync, MetaBoxesMainProps>} */
 const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 	const [ isOpen, openHeight, isAutoResize, hasAnyVisible ] = useSelect(
 		( select ) => {
@@ -154,23 +154,30 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 			} );
 		}
 	};
-	const getRenderValues = useEvent( () => ( { isOpen, openHeight, min } ) );
+	const getRenderValues = useEvent( () => ( {
+		isOpen,
+		openHeight,
+		min,
+		isAutoResize,
+	} ) );
 	// Sets the height to 'auto' when not resizable (isShort) and to the
 	// preferred height when resizable.
 	useEffect( () => {
 		const fresh = getRenderValues();
-		// Tests for `min` having a value to skip the first render.
-		if ( fresh.min !== undefined && metaBoxesMainRef.current ) {
-			const usedOpenHeight = isShort ? 'auto' : fresh.openHeight;
-			const usedHeight = fresh.isOpen ? usedOpenHeight : fresh.min;
-			applyHeight( usedHeight, false, true );
+		if ( ! fresh.isAutoResize ) {
+			// Tests for `min` having a value to skip the first render.
+			if ( fresh.min !== undefined && metaBoxesMainRef.current ) {
+				const usedOpenHeight = isShort ? 'auto' : fresh.openHeight;
+				const usedHeight = fresh.isOpen ? usedOpenHeight : fresh.min;
+				applyHeight( usedHeight, false, true );
+			}
 		}
 	}, [ isShort ] );
 
 	const linerRef = useRef();
-	const _applyHeight = useEvent( applyHeight );
-	/** @type { EffectWheelResizing } */
-	const effectWheel = useRefEffect(
+	const [ jumpTargetIsCanvas, setJumpTargetIsCanvas ] = useState( false );
+	/** @type { EffectScrollSync } */
+	const effectScrollSync = useRefEffect(
 		( canvas ) => {
 			if ( ! isAutoResize ) {
 				return;
@@ -180,64 +187,161 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 				return;
 			}
 			const pane = metaBoxesMainRef.current.resizable;
-			let isScrollMaxSticking = false;
-			const iframeObserver = new window.ResizeObserver( () => {
-				if ( isScrollMaxSticking ) {
-					const { scrollingElement } = iframe.contentDocument;
-					scrollingElement.scrollTop = scrollingElement.scrollHeight;
-					isScrollMaxSticking = false;
-				}
-			} );
-			iframeObserver.observe( iframe );
-			/** @param { WheelEvent } event */
-			const onWheel = ( event ) => {
-				const { deltaY, currentTarget } = event;
-				const { offsetHeight: canvasHeight, contentDocument } = iframe;
-				const { scrollTop, scrollHeight } =
-					contentDocument.scrollingElement;
-				const scrollMax = scrollHeight - canvasHeight;
-				if ( scrollMax - scrollTop >= 1 ) {
+			const interfaceContent = pane.closest(
+				'.interface-interface-skeleton__content'
+			);
+			const canvasHtml = canvas.parentElement;
+			let skipSyncScroll = false;
+			let skipSyncScrollOut = false;
+			const syncScroll = () => {
+				if ( skipSyncScroll ) {
+					skipSyncScroll = false;
 					return;
 				}
-				if ( pane === currentTarget ) {
-					const isPaneScrolled = linerRef.current.scrollTop > 0;
-					if ( isPaneScrolled && Math.sign( deltaY ) === -1 ) {
-						return;
-					}
-					// While the canvas has height, prevents scrolling the meta boxes.
-					if ( canvasHeight > 0 ) {
-						event.preventDefault();
-					}
-				}
-				isScrollMaxSticking = true;
-				let fromHeight = metaBoxesMainRef.current.state.height;
-				// Reads the height from the DOM in case it's unset.
-				if ( fromHeight === 'auto' ) {
-					fromHeight = pane.offsetHeight;
-				}
-				const nextHeight = deltaY + fromHeight;
-				const { min: _min, isOpen: _isOpen } = getRenderValues();
-				if ( _isOpen && nextHeight <= _min ) {
-					persistIsOpen( false );
-				} else if ( ! _isOpen && nextHeight > _min ) {
-					persistIsOpen( true );
-				}
-				_applyHeight( nextHeight, false, true );
+				skipSyncScrollOut = true;
+				canvasHtml.scrollTop =
+					-noticesHeight + interfaceContent.scrollTop;
 			};
-			const canvasDocument = canvas.ownerDocument;
-			canvasDocument.addEventListener( 'wheel', onWheel, {
+			interfaceContent.addEventListener( 'scroll', syncScroll, {
 				passive: true,
 			} );
-			pane.addEventListener( 'wheel', onWheel, { passive: false } );
+			const syncScrollOut = () => {
+				if ( skipSyncScrollOut ) {
+					skipSyncScrollOut = false;
+					return;
+				}
+				skipSyncScroll = true;
+				interfaceContent.scrollTop =
+					/** @todo dunno if this is right… */
+					noticesHeight + canvasHtml.scrollTop;
+			};
+			const canvasDocument = canvas.ownerDocument;
+			canvasDocument.addEventListener( 'scroll', syncScrollOut );
+
+			const noticeLists = interfaceContent.querySelectorAll(
+				':scope > .components-notice-list'
+			);
+			let noticesHeight = 0;
+			const noticesSpySize = new window.ResizeObserver( () => {
+				noticesHeight = 0;
+				for ( const element of noticeLists ) {
+					noticesHeight += element.offsetHeight;
+				}
+			} );
+			for ( const element of noticeLists ) {
+				noticesSpySize.observe( element );
+			}
+
+			const scrollRegionIntoView = ( { target } ) => {
+				const { offsetTop, offsetHeight } = pane.previousElementSibling;
+				const { scrollTop } = interfaceContent;
+				// The top of the pane might seem like it would equal the height of the
+				// canvas and it does excepting when notices are present. That's why
+				// the top is calculated here instead of reusing the canvas height.
+				const topOfPane = offsetTop + offsetHeight;
+				const viewHeight =
+					interfaceContent.offsetHeight -
+					handleRef.current.offsetHeight;
+				if ( target === interfaceContent ) {
+					let nextTop = scrollTop;
+					// Scrolls up if the pane is obscuring the canvas.
+					if ( scrollTop > topOfPane - viewHeight ) {
+						nextTop = topOfPane - viewHeight;
+						interfaceContent.scrollTop = nextTop;
+					}
+					// Puts the region focus ring in view.
+					interfaceContent.style.setProperty(
+						'--wp-edit-post-content-region-top',
+						`${ nextTop }px`
+					);
+				} else if (
+					scrollTop < topOfPane && // The pane isn’t already maximally in view.
+					! handleRef.current.contains( target ) // Target isn’t in the handle.
+				) {
+					interfaceContent.scrollTop = topOfPane;
+					// Jumps farther if needed. It's possible for focus to enter somewhere in the
+					// pane content without it first being in view. For example, moving a meta box
+					// from the side location by clicking its order button wouldn't land in view.
+					if ( linerRef.current.contains( target ) ) {
+						target.scrollIntoView();
+					}
+				}
+			};
+			interfaceContent.addEventListener( 'focus', scrollRegionIntoView );
+			pane.addEventListener( 'focusin', scrollRegionIntoView );
+
+			let canvasHeight = 0;
+			const canvasSizeSpy = new window.ResizeObserver( ( [ entry ] ) => {
+				[ { blockSize: canvasHeight } ] = entry.borderBoxSize;
+				interfaceContent.style.setProperty(
+					'--wp-edit-post-canvas-height',
+					canvasHeight
+				);
+			} );
+			canvasSizeSpy.observe( canvasHtml );
+
+			const linerSizeSpy = new window.ResizeObserver( ( [ entry ] ) => {
+				const [ { blockSize } ] = entry.borderBoxSize;
+				pane.style.bottom = `-${ blockSize }px`;
+				interfaceContent.style.setProperty(
+					'--wp-edit-post-meta-boxes-main-content-height',
+					`${ blockSize }px`
+				);
+			} );
+			linerSizeSpy.observe( linerRef.current );
+
+			const jumpDirectorSpy = new window.IntersectionObserver(
+				( [ { isIntersecting } ] ) => {
+					setJumpTargetIsCanvas( isIntersecting );
+				},
+				{ root: interfaceContent, rootMargin: '0px 0px -50% 0px' }
+			);
+			jumpDirectorSpy.observe( pane );
+
 			return () => {
-				iframeObserver.disconnect();
-				canvasDocument.removeEventListener( 'wheel', onWheel );
-				pane.removeEventListener( 'wheel', onWheel );
+				interfaceContent.removeEventListener( 'scroll', syncScroll );
+				canvasDocument.removeEventListener( 'scroll', syncScrollOut );
+				noticesSpySize.disconnect();
+				interfaceContent.removeEventListener(
+					'focus',
+					scrollRegionIntoView
+				);
+				pane.removeEventListener( 'focusin', scrollRegionIntoView );
+				canvasSizeSpy.disconnect();
+				linerSizeSpy.disconnect();
+				jumpDirectorSpy.disconnect();
+				pane.style.bottom = '';
+				interfaceContent.style.removeProperty(
+					'--wp-edit-post-canvas-height'
+				);
+				interfaceContent.style.removeProperty(
+					'--wp-edit-post-meta-boxes-main-content-height'
+				);
+				interfaceContent.style.removeProperty(
+					'--wp-edit-post-content-region-top'
+				);
 			};
 		},
 		[ isAutoResize ]
 	);
-	useImperativeHandle( ref, () => effectWheel, [ effectWheel ] );
+	useImperativeHandle(
+		ref,
+		() => ( ! hasAnyVisible || isLegacy ? null : effectScrollSync ),
+		[ effectScrollSync, hasAnyVisible, isLegacy ]
+	);
+
+	const handleRef = useRef();
+	/** @type { RefEffect< HTMLElement > } */
+	const effectHandle = useRefEffect( ( node ) => {
+		handleRef.current = node.parentElement;
+		const wrapper = node.parentElement.parentElement;
+		const className = 'edit-post-meta-boxes-main__presenter-wrapper';
+		wrapper.classList.add( className );
+		return () => {
+			handleRef.current = null;
+			wrapper.classList.remove( className );
+		};
+	}, [] );
 
 	if ( ! hasAnyVisible ) {
 		return;
@@ -247,7 +351,7 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 		<div
 			// The class name 'edit-post-layout__metaboxes' is retained because some plugins use it.
 			className="edit-post-layout__metaboxes edit-post-meta-boxes-main__liner"
-			hidden={ ! isLegacy && ! isOpen }
+			hidden={ ! isLegacy && ! isAutoResize && ! isOpen }
 			ref={ ! isLegacy ? linerRef : null }
 		>
 			<MetaBoxes location="normal" />
@@ -326,81 +430,84 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 		</>
 	);
 
-	const iconStyle = {
-		stroke: 'currentColor',
-		strokeWidth: 1.5,
-		strokeLinecap: 'round',
-		strokeLinejoin: 'round',
-		fill: 'none',
-	};
-
-	const splitBox = (
+	const splitOrUnifyIcon = (
 		<SVG
-			xmlns="http://www.w3.org/2000/svg"
 			width="24"
 			height="24"
 			viewBox="0 0 24 24"
-			style={ { ...iconStyle } }
+			style={ {
+				stroke: 'currentColor',
+				strokeWidth: 1.5,
+				fill: 'none',
+			} }
 		>
-			<Path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
-			<Path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3" />
 			{ isAutoResize ? (
 				<>
-					<Path d="M4 12H2" />
-					<Path d="M10 12H8" />
-					<Path d="M16 12h-2" />
-					<Path d="M22 12h-2" />
+					<Path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
+					<Path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3" />
+					<Path d="M2 12h20" />
 				</>
 			) : (
-				<Path d="M3 12H21" />
+				<>
+					<Rect width="18" height="18" x="3" y="3" rx="2" />
+					<Path d="M6 17H18" />
+				</>
 			) }
 		</SVG>
 	);
 
-	const dashedInside = (
-		<SVG
-			xmlns="http://www.w3.org/2000/svg"
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			style={ { ...iconStyle } }
-		>
-			<Rect width="18" height="18" x="3" y="3" rx="2" />
-			<Path d="M14 12h1" />
-			<Path d="M19 12h2" />
-			<Path d="M3 12h2" />
-			<Path d="M9 12h1" />
-		</SVG>
+	const autoResizeSwitch = (
+		<Button
+			label={ isAutoResize ? __( 'Split view' ) : __( 'Unify view' ) }
+			size="small"
+			icon={ splitOrUnifyIcon }
+			onClick={ () =>
+				setPreference(
+					'core/edit-post',
+					'metaBoxesMainIsAutoResize',
+					! isAutoResize
+				)
+			}
+			// Avoids pointer capture from the resize handle. This allows
+			// canceling clicks by dragging off the button.
+			onPointerDown={ ( event ) => event.stopPropagation() }
+			// Prevents resizes - the button is inside the resize handle.
+			onMouseDown={ ( event ) => event.stopPropagation() }
+			onTouchStart={ ( event ) => event.stopPropagation() }
+		/>
 	);
 
-	const grab = (
-		<SVG
-			xmlns="http://www.w3.org/2000/svg"
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			style={ { ...iconStyle, transform: 'scale(0.75)', strokeWidth: 2 } }
-		>
-			<Path d="M18 9.5V7a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1.4" />
-			<Path d="M14 8V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
-			<Path d="M10 7.9V7a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5" />
-			<Path d="M6 12a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
-			<Path d="M18 9a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8 2 2 0 1 1 4 0" />
-		</SVG>
-	);
-
-	const magnet = (
-		<SVG
-			xmlns="http://www.w3.org/2000/svg"
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			style={ { ...iconStyle, transform: 'scale(0.75)', strokeWidth: 2 } }
-		>
-			<Path d="m12 15 4 4" />
-			<Path d="M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z" />
-			<Path d="m5 8 4 4" />
-		</SVG>
+	const jumpButton = (
+		<Button
+			label={
+				jumpTargetIsCanvas
+					? __( 'Jump back up' )
+					: __( 'Jump to meta boxes' )
+			}
+			icon={ jumpTargetIsCanvas ? arrowUp : arrowDown }
+			size="small"
+			variant="tertiary"
+			onClick={ ( { currentTarget } ) => {
+				const pane = metaBoxesMainRef.current.resizable;
+				let to;
+				if ( jumpTargetIsCanvas ) {
+					to = currentTarget.dataset.lastCanvasScrollTop || 0;
+				} else {
+					currentTarget.dataset.lastCanvasScrollTop =
+						pane.parentElement.scrollTop;
+					const { offsetTop, offsetHeight } =
+						pane.previousElementSibling;
+					to = offsetTop + offsetHeight;
+				}
+				pane.parentElement.scrollTop = to;
+			} }
+			// Avoids pointer capture from the resize handle. This allows
+			// canceling clicks by dragging off the button.
+			onPointerDown={ ( event ) => event.stopPropagation() }
+			// Prevents resizes - the button is inside the resize handle.
+			onMouseDown={ ( event ) => event.stopPropagation() }
+			onTouchStart={ ( event ) => event.stopPropagation() }
+		/>
 	);
 
 	const paneProps = /** @type {Parameters<typeof ResizableBox>[0]} */ ( {
@@ -415,28 +522,19 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 		handleComponent: {
 			top: (
 				<>
-					{ toggle }
-					{ separator }
-					<Button
-						label={ __( 'Disable auto-resizing' ) }
-						showTooltip
-						size="small"
-						icon={ isAutoResize ? magnet : grab }
-						onClick={ () =>
-							setPreference(
-								'core/edit-post',
-								'metaBoxesMainIsAutoResize',
-								! isAutoResize
-							)
-						}
-						// isPressed={ ! isAutoResize }
-						// Avoids pointer capture from the resize handle. This allows
-						// canceling clicks by dragging off the button.
-						onPointerDown={ ( event ) => event.stopPropagation() }
-						// Prevents resizes - the button is inside the resize handle.
-						onMouseDown={ ( event ) => event.stopPropagation() }
-						onTouchStart={ ( event ) => event.stopPropagation() }
-					/>
+					{ isAutoResize ? (
+						<>
+							{ paneLabel }
+							{ jumpButton }
+							<meta ref={ effectHandle } />
+						</>
+					) : (
+						<>
+							{ toggle }
+							{ separator }
+						</>
+					) }
+					{ autoResizeSwitch }
 				</>
 			),
 		},
@@ -488,10 +586,21 @@ const MetaBoxesMain = forwardRef( ( { isLegacy }, ref ) => {
 	} );
 
 	return (
-		<ResizableBox aria-label={ paneLabel } { ...paneProps }>
-			<meta ref={ effectSizeConstraints } />
-			{ contents }
-		</ResizableBox>
+		<>
+			{ isAutoResize && (
+				<div
+					style={ {
+						flex: '0 0 calc(1px * var(--wp-edit-post-canvas-height) - 100cqb)',
+						marginBlockStart:
+							'calc(-1 * var(--wp-edit-post-meta-boxes-main-content-height))',
+					} }
+				/>
+			) }
+			<ResizableBox aria-label={ paneLabel } { ...paneProps }>
+				<meta ref={ effectSizeConstraints } />
+				{ contents }
+			</ResizableBox>
+		</>
 	);
 } );
 

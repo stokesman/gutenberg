@@ -4,18 +4,29 @@
 import getComputedStyle from './get-computed-style';
 
 /**
+ * @typedef Options
+ * @property {string=}  direction Direction of scrollable container to search for ('vertical', 'horizontal', 'all').
+ *                                Defaults to 'vertical'.
+ * @property {boolean=} strict    Whether to return void instead of the document when no scrollable container was found.
+ */
+
+/**
  * Given a DOM node, finds the closest scrollable container node or the node
  * itself, if scrollable.
  *
- * @param {Element | null} node      Node from which to start.
- * @param {?string}        direction Direction of scrollable container to search for ('vertical', 'horizontal', 'all').
- *                                   Defaults to 'vertical'.
+ * @param {Element | null}                 node    Node from which to start.
+ * @param {Options['direction'] | Options} options Options for how to proceed.
  * @return {Element | undefined} Scrollable container node, if found.
  */
-export default function getScrollContainer( node, direction = 'vertical' ) {
+export default function getScrollContainer(
+	node,
+	options = { direction: 'vertical' }
+) {
 	if ( ! node ) {
 		return undefined;
 	}
+	const { direction, strict } =
+		typeof options === 'object' ? options : { direction: options };
 
 	if ( direction === 'vertical' || direction === 'all' ) {
 		// Scrollable if scrollable height exceeds displayed...
@@ -42,12 +53,12 @@ export default function getScrollContainer( node, direction = 'vertical' ) {
 	}
 
 	if ( node.ownerDocument === node.parentNode ) {
-		return node;
+		return strict ? undefined : node;
 	}
 
 	// Continue traversing.
-	return getScrollContainer(
-		/** @type {Element} */ ( node.parentNode ),
-		direction
-	);
+	return getScrollContainer( /** @type {Element} */ ( node.parentNode ), {
+		direction,
+		strict,
+	} );
 }
